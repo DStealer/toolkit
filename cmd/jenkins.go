@@ -64,9 +64,7 @@ func init() {
 				resp, err := http.Get(originalUrl)
 				if err != nil {
 					log.Error("客户请求错误:", err)
-					writer.WriteHeader(http.StatusBadRequest)
-					writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
-					_, _ = writer.Write([]byte("客户请求错误" + err.Error()))
+					http.Error(writer, err.Error(), http.StatusInternalServerError)
 					return
 				}
 				defer resp.Body.Close()
@@ -74,16 +72,12 @@ func init() {
 				_, err = buf.ReadFrom(resp.Body)
 				if err != nil {
 					log.Error("服务器转发错误:", err)
-					writer.WriteHeader(http.StatusBadGateway)
-					writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
-					_, _ = writer.Write([]byte("服务器转发错误" + err.Error()))
+					http.Error(writer, err.Error(), http.StatusInternalServerError)
 					return
 				}
 				if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
 					log.Error("服务器响应错误:", resp.Status)
-					writer.WriteHeader(resp.StatusCode)
-					_ = resp.Header.Write(writer)
-					_, _ = writer.Write(buf.Bytes())
+					http.Error(writer, err.Error(), http.StatusInternalServerError)
 					return
 				}
 				body := buf.String()
@@ -96,7 +90,7 @@ func init() {
 				expiringCache.Set("/update-center.json", data, 24*time.Hour)
 				_, err = writer.Write(data)
 				if err != nil {
-					log.Error("写入body错误:", err.Error())
+					http.Error(writer, err.Error(), http.StatusInternalServerError)
 					return
 				}
 			})
