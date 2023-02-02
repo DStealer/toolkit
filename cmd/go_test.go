@@ -10,6 +10,8 @@ import (
 	"github.com/heroku/docker-registry-client/registry"
 	"github.com/prometheus/common/log"
 	"github.com/robfig/cron"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -314,4 +316,60 @@ func TestHttp(t *testing.T) {
 	if err != nil {
 		return
 	}
+}
+
+func TestMem(t *testing.T) {
+	targetPercent := 0.6
+	deltaPercent := 0.1
+	go func() {
+		var sl []byte
+		ticker := time.NewTicker(1 * time.Second)
+		for _ = range ticker.C {
+			memory, err := mem.VirtualMemory()
+			cobra.CheckErr(err)
+			fmt.Printf("Total: %v,Used:%v,Available:%v, Free:%v, UsedPercent:%f %%\n",
+				memory.Total/1024/1024, memory.Used/1024/1024, memory.Available/1024/1024, memory.Free/1024/1024, memory.UsedPercent)
+			currentPercent := memory.UsedPercent / 100.0
+			if currentPercent > (targetPercent + deltaPercent) { //高于上限
+				sl = make([]byte, 0, 0)
+				fmt.Println("减少内存使用")
+			} else if currentPercent < (targetPercent - deltaPercent) { //低于下限
+				pct := targetPercent - deltaPercent - currentPercent
+				pctByte := pct * float64(memory.Total)
+				sl = make([]byte, 0, int(pctByte))
+				fmt.Println("增加内存使用")
+			} else {
+
+			}
+			Unused(sl)
+		}
+	}()
+	select {}
+}
+func TestCPU(t *testing.T) {
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		for _ = range ticker.C {
+			percent, err := cpu.Percent(0, false)
+			cobra.CheckErr(err)
+			fmt.Println(percent)
+		}
+	}()
+	go func() {
+		for {
+
+		}
+	}()
+	go func() {
+		for {
+
+		}
+	}()
+	select {}
+}
+
+func TestMem2(t *testing.T) {
+	var sl []byte = make([]byte, 0, 1024*1024*10)
+
+	Unused(sl)
 }

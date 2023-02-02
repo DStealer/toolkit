@@ -103,3 +103,8 @@ func VersionCompare(v1 string, v2 string) int {
 	}
 	return len(v1Ar) - len(v2Ar)
 }
+
+// 防止golang未使用变量导致编译不通过
+func Unused(obj interface{}) {
+
+}
