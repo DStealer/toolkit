@@ -367,8 +367,7 @@ func TestCPU(t *testing.T) {
 			currentPercent := percent[0] / 100.0
 
 			if currentPercent < targetPercent-deltaPercent {
-				totalDeltaCounts := int64((targetPercent - deltaPercent*rand.Float64() - currentPercent) * float64(totalCounts))
-				averageDeltaCounts := totalDeltaCounts / int64(counts)
+				averageDeltaCounts := int64((targetPercent-deltaPercent*rand.Float64()-currentPercent)*float64(totalCounts)) / int64(counts)
 				fmt.Println("averageDeltaCounts:", averageDeltaCounts)
 				for i := 0; i < counts; i++ {
 					go func() {
