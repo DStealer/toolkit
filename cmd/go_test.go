@@ -350,7 +350,7 @@ func TestMem(t *testing.T) {
 	select {}
 }
 func TestCPU(t *testing.T) {
-	targetPercent := 0.4
+	targetPercent := 0.6
 
 	deltaPercent := 0.1
 
