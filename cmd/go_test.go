@@ -350,14 +350,17 @@ func TestMem(t *testing.T) {
 	select {}
 }
 func TestCPU(t *testing.T) {
-	targetPercent := 1.2
+	targetPercent := 0.4
 
 	deltaPercent := 0.1
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	counts, err := cpu.Counts(true)
+	physicalCounts, err := cpu.Counts(false)
 	cobra.CheckErr(err)
-	totalCounts := counts * 1000
+	Unused(physicalCounts)
+	logicalCounts, err := cpu.Counts(true)
+	cobra.CheckErr(err)
+	totalCounts := logicalCounts * 1000
 	go func() {
 		for {
 			startedTime := time.Now().UnixMilli()
@@ -367,9 +370,9 @@ func TestCPU(t *testing.T) {
 			currentPercent := percent[0] / 100.0
 
 			if currentPercent < targetPercent-deltaPercent {
-				averageDeltaCounts := int64((targetPercent-deltaPercent*rand.Float64()-currentPercent)*float64(totalCounts)) / int64(counts)
+				averageDeltaCounts := int64((targetPercent-deltaPercent*rand.Float64()-currentPercent)*float64(totalCounts)) / int64(logicalCounts)
 				fmt.Println("averageDeltaCounts:", averageDeltaCounts)
-				for i := 0; i < counts; i++ {
+				for i := 0; i < logicalCounts; i++ {
 					go func() {
 						startedTime := time.Now().UnixMilli()
 						for (time.Now().UnixMilli() - startedTime) < averageDeltaCounts {
