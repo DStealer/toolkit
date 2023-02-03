@@ -19,9 +19,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"text/template"
@@ -334,7 +336,7 @@ func TestMem(t *testing.T) {
 				sl = make([]byte, 0, 0)
 				fmt.Println("减少内存使用")
 			} else if currentPercent < (targetPercent - deltaPercent) { //低于下限
-				pct := targetPercent - deltaPercent - currentPercent
+				pct := targetPercent - currentPercent - deltaPercent*rand.Float64()
 				pctByte := pct * float64(memory.Total)
 				sl = make([]byte, 0, int(pctByte))
 				fmt.Println("增加内存使用")
@@ -343,27 +345,55 @@ func TestMem(t *testing.T) {
 			}
 			Unused(sl)
 		}
+		return
 	}()
 	select {}
 }
 func TestCPU(t *testing.T) {
+	targetPercent := 1.2
+
+	deltaPercent := 0.1
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	counts, err := cpu.Counts(true)
+	cobra.CheckErr(err)
+	totalCounts := counts * 1000
 	go func() {
-		ticker := time.NewTicker(1 * time.Second)
-		for _ = range ticker.C {
+		for {
+			startedTime := time.Now().UnixMilli()
+
 			percent, err := cpu.Percent(0, false)
 			cobra.CheckErr(err)
-			fmt.Println(percent)
-		}
-	}()
-	go func() {
-		for {
+			currentPercent := percent[0] / 100.0
 
+			if currentPercent < targetPercent-deltaPercent {
+				totalDeltaCounts := int64((targetPercent - deltaPercent*rand.Float64() - currentPercent) * float64(totalCounts))
+				averageDeltaCounts := totalDeltaCounts / int64(counts)
+				fmt.Println("averageDeltaCounts:", averageDeltaCounts)
+				for i := 0; i < counts; i++ {
+					go func() {
+						startedTime := time.Now().UnixMilli()
+						for (time.Now().UnixMilli() - startedTime) < averageDeltaCounts {
+						}
+						sleepMills := 1000 - (time.Now().UnixMilli() - startedTime)
+						if sleepMills <= 0 {
+							time.Sleep(0)
+						} else {
+							time.Sleep(time.Duration(sleepMills) * time.Millisecond)
+						}
+						return
+					}()
+				}
+			}
+			sleepMills := 1000 - (time.Now().UnixMilli() - startedTime)
+			fmt.Println("sleep:", sleepMills)
+			if sleepMills <= 0 {
+				time.Sleep(0 * time.Millisecond)
+			} else {
+				time.Sleep(time.Duration(sleepMills) * time.Millisecond)
+			}
 		}
-	}()
-	go func() {
-		for {
-
-		}
+		return
 	}()
 	select {}
 }
