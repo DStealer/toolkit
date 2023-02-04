@@ -3,8 +3,10 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"github.com/docker/go-units"
 	"github.com/prometheus/common/log"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/cache"
 	"net"
 	"net/http"
@@ -17,6 +19,7 @@ var (
 		Use:   "jenkins subcommand [args]",
 		Short: "jenkins辅助命令",
 	}
+	client = http.Client{}
 )
 
 func init() {
@@ -42,6 +45,8 @@ func init() {
 			if !ok {
 				cobra.CheckErr("未识别的镜像地址")
 			}
+			mirrorAddr, err := cmd.Flags().GetString("mirror-addr")
+			cobra.CheckErr(err)
 
 			mux := http.NewServeMux()
 			expiringCache := cache.NewExpiring()
@@ -53,39 +58,43 @@ func init() {
 						writer.WriteHeader(http.StatusOK)
 						writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 						_, _ = writer.Write(data)
-						log.Infof("fetch data from cache size:%d",len(data))
+						log.Infof("fetch data from cache size:%d", units.HumanSize(float64(len(data))))
 						return
 					} else {
 						expiringCache.Delete("/update-center.json")
 					}
 				}
-				originalUrl := fmt.Sprintf("%s/updates/update-center.json", baseUrl)
-				log.Infof("fetch data from original:%s", originalUrl)
-				resp, err := http.Get(originalUrl)
+				requestUrl := baseUrl + "/updates/update-center.json"
+				log.Infof("fetch data from :%s", requestUrl)
+				response, err := http.Get(requestUrl)
 				if err != nil {
 					log.Error("客户请求错误:", err)
 					http.Error(writer, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				defer resp.Body.Close()
+				defer response.Body.Close()
 				buf := new(bytes.Buffer)
-				_, err = buf.ReadFrom(resp.Body)
+				_, err = buf.ReadFrom(response.Body)
 				if err != nil {
 					log.Error("服务器转发错误:", err)
 					http.Error(writer, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
-					log.Error("服务器响应错误:", resp.Status)
+				if !(response.StatusCode >= 200 && response.StatusCode < 300) {
+					log.Error("服务器响应错误:", response.Status)
 					http.Error(writer, err.Error(), http.StatusInternalServerError)
 					return
 				}
 				body := buf.String()
 				body = strings.ReplaceAll(body, "https://www.google.com/", "https://www.baidu.com/")
-				body = strings.ReplaceAll(body, "https://updates.jenkins.io/download", baseUrl)
+				if mirrorAddr != "" {
+					body = strings.ReplaceAll(body, "https://updates.jenkins.io/download", mirrorAddr)
+				} else {
+					body = strings.ReplaceAll(body, "https://updates.jenkins.io/download", baseUrl)
+				}
 
-				writer.WriteHeader(http.StatusOK)
-				writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+				writer.WriteHeader(response.StatusCode)
+				CopyHeader(response.Header, writer.Header())
 				data := []byte(body)
 				expiringCache.Set("/update-center.json", data, 24*time.Hour)
 				_, err = writer.Write(data)
@@ -94,6 +103,36 @@ func init() {
 					return
 				}
 			})
+			mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+				defer request.Body.Close()
+				newRequest, err := http.NewRequest(request.Method, baseUrl+request.URL.String(), request.Body)
+				log.Infof("fetch data from :%s", newRequest.URL)
+				if err != nil {
+					http.Error(writer, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				CopyHeader(request.Header, newRequest.Header, "Host")
+				response, err := client.Do(newRequest)
+				if err != nil {
+					log.Error("请求错误:", request.Method, request.URL, err)
+					http.Error(writer, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				writer.WriteHeader(response.StatusCode)
+				defer response.Body.Close()
+				CopyHeader(response.Header, writer.Header())
+				bts, err := ioutil.ReadAll(response.Body)
+				if err != nil {
+					log.Error("请求错误:", request.Method, request.URL, err)
+					http.Error(writer, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				_, err = writer.Write(bts)
+				if err != nil {
+					http.Error(writer, err.Error(), http.StatusInternalServerError)
+				}
+			})
+
 			log.Infof("注册jenkins插件中心:%s", "/update-center.json")
 
 			addr := fmt.Sprintf("%s:%d", ip, port)
@@ -105,7 +144,8 @@ func init() {
 
 	ucCmd.Flags().IP("ip", net.ParseIP("127.0.0.1"), "绑定ip地址")
 	ucCmd.Flags().Int("port", 8080, "绑定port")
-	ucCmd.Flags().String("mirror", "tencent", "one of tencent huawei tsinghua ustc bit ")
+	ucCmd.Flags().String("mirror", "tencent", " 选项: tencent huawei tsinghua ustc bit ")
+	ucCmd.Flags().String("mirror-addr", "", "自定义地址下载地址,如果不填写,则直接从原始地址下载,例如 http://127.0.0.1:8080/download")
 
 	jenkinsCmd.AddCommand(ucCmd)
 }

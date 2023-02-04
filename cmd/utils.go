@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -107,4 +108,18 @@ func VersionCompare(v1 string, v2 string) int {
 // 防止golang未使用变量导致编译不通过
 func Unused(obj interface{}) {
 
+}
+
+func CopyHeader(from http.Header, to http.Header, excludes ...string) {
+out:
+	for k, vv := range from {
+		for _, exclude := range excludes {
+			if strings.EqualFold(exclude, k) {
+				continue out
+			}
+		}
+		vv2 := make([]string, len(vv))
+		copy(vv2, vv)
+		to[k] = vv2
+	}
 }
