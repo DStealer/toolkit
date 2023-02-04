@@ -27,8 +27,8 @@ func init() {
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := context.Background()
-			keepCpu(0.7, 0.0, ctx)
-			keepMem(0.2, 0.0, ctx)
+			keepCpu(0.7, 0.1, ctx)
+			keepMem(0.8, 0.1, ctx)
 			<-ctx.Done()
 		},
 	}
@@ -97,7 +97,7 @@ func keepCpu(targetPercent, deltaPercent float64, ctx context.Context) error {
 	return nil
 }
 
-//保持cpu使用率
+//保持mem使用率
 func keepMem(targetPercent, deltaPercent float64, ctx context.Context) error {
 	go func() {
 		var sl []byte
@@ -123,7 +123,7 @@ func keepMem(targetPercent, deltaPercent float64, ctx context.Context) error {
 					sl = make([]byte, 0, int(memSize))
 					fmt.Printf("adjust to: %v\n", units.HumanSize(memSize))
 				} else {
-					fmt.Printf("do thing")
+					fmt.Printf("do thing \n")
 				}
 			}
 		}
