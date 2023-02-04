@@ -7,6 +7,7 @@ require (
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/bmatcuk/doublestar v1.3.4
 	github.com/containerd/containerd v1.5.2
+	github.com/docker/go-units v0.4.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/heroku/docker-registry-client v0.0.0-20211012143308-9463674c8930
 	github.com/prometheus/common v0.10.0
