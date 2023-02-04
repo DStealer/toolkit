@@ -45,7 +45,7 @@ func init() {
 			if !ok {
 				cobra.CheckErr("未识别的镜像地址")
 			}
-			mirrorAddr, err := cmd.Flags().GetString("mirror-addr")
+			proxy, err := cmd.Flags().GetString("proxy")
 			cobra.CheckErr(err)
 
 			mux := http.NewServeMux()
@@ -58,7 +58,7 @@ func init() {
 						writer.WriteHeader(http.StatusOK)
 						writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 						_, _ = writer.Write(data)
-						log.Infof("fetch data from cache size:%d", units.HumanSize(float64(len(data))))
+						log.Infof("fetch data from cache size:%s", units.HumanSize(float64(len(data))))
 						return
 					} else {
 						expiringCache.Delete("/update-center.json")
@@ -87,8 +87,8 @@ func init() {
 				}
 				body := buf.String()
 				body = strings.ReplaceAll(body, "https://www.google.com/", "https://www.baidu.com/")
-				if mirrorAddr != "" {
-					body = strings.ReplaceAll(body, "https://updates.jenkins.io/download", mirrorAddr)
+				if proxy != "" {
+					body = strings.ReplaceAll(body, "https://updates.jenkins.io/download", proxy)
 				} else {
 					body = strings.ReplaceAll(body, "https://updates.jenkins.io/download", baseUrl)
 				}
@@ -103,36 +103,37 @@ func init() {
 					return
 				}
 			})
-			mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-				defer request.Body.Close()
-				newRequest, err := http.NewRequest(request.Method, baseUrl+request.URL.String(), request.Body)
-				log.Infof("fetch data from :%s", newRequest.URL)
-				if err != nil {
-					http.Error(writer, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				CopyHeader(request.Header, newRequest.Header, "Host")
-				response, err := client.Do(newRequest)
-				if err != nil {
-					log.Error("请求错误:", request.Method, request.URL, err)
-					http.Error(writer, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				writer.WriteHeader(response.StatusCode)
-				defer response.Body.Close()
-				CopyHeader(response.Header, writer.Header())
-				bts, err := ioutil.ReadAll(response.Body)
-				if err != nil {
-					log.Error("请求错误:", request.Method, request.URL, err)
-					http.Error(writer, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				_, err = writer.Write(bts)
-				if err != nil {
-					http.Error(writer, err.Error(), http.StatusInternalServerError)
-				}
-			})
-
+			if proxy != "" {
+				mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+					defer request.Body.Close()
+					newRequest, err := http.NewRequest(request.Method, baseUrl+request.URL.String(), request.Body)
+					log.Infof("fetch data from :%s", newRequest.URL)
+					if err != nil {
+						http.Error(writer, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					CopyHeader(request.Header, newRequest.Header, "Host")
+					response, err := client.Do(newRequest)
+					if err != nil {
+						log.Error("请求错误:", request.Method, request.URL, err)
+						http.Error(writer, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					writer.WriteHeader(response.StatusCode)
+					defer response.Body.Close()
+					CopyHeader(response.Header, writer.Header())
+					bts, err := ioutil.ReadAll(response.Body)
+					if err != nil {
+						log.Error("请求错误:", request.Method, request.URL, err)
+						http.Error(writer, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					_, err = writer.Write(bts)
+					if err != nil {
+						http.Error(writer, err.Error(), http.StatusInternalServerError)
+					}
+				})
+			}
 			log.Infof("注册jenkins插件中心:%s", "/update-center.json")
 
 			addr := fmt.Sprintf("%s:%d", ip, port)
@@ -145,7 +146,7 @@ func init() {
 	ucCmd.Flags().IP("ip", net.ParseIP("127.0.0.1"), "绑定ip地址")
 	ucCmd.Flags().Int("port", 8080, "绑定port")
 	ucCmd.Flags().String("mirror", "tencent", " 选项: tencent huawei tsinghua ustc bit ")
-	ucCmd.Flags().String("mirror-addr", "", "自定义地址下载地址,如果不填写,则直接从原始地址下载,例如 http://127.0.0.1:8080/download")
+	ucCmd.Flags().String("proxy", "", "自定义地址下载地址,如果不填写,则直接从原始地址下载,例如 http://127.0.0.1:8080/download")
 
 	jenkinsCmd.AddCommand(ucCmd)
 }
