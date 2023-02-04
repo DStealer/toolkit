@@ -400,8 +400,8 @@ func TestCPU(t *testing.T) {
 	select {}
 }
 
-func TestMem2(t *testing.T) {
-	var sl []byte = make([]byte, 0, 1024*1024*10)
-
-	Unused(sl)
+func TestResourceCmd(t *testing.T) {
+	cmd, args, err := osCmd.Traverse([]string{"resource"})
+	cobra.CheckErr(err)
+	cmd.Run(cmd, args)
 }

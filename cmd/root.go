@@ -15,9 +15,10 @@ func Execute() error {
 }
 
 func init() {
-	rootCmd.AddCommand(redisCmd)
+	rootCmd.AddCommand(osCmd)
 	rootCmd.AddCommand(sm4Cmd)
 	rootCmd.AddCommand(jarCmd)
 	rootCmd.AddCommand(logCmd)
 	rootCmd.AddCommand(jenkinsCmd)
+	rootCmd.AddCommand(osCmd)
 }
