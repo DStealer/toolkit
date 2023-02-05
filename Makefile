@@ -1,7 +1,7 @@
 
 .PHONY: build
 build:
-	go build -o tk -v
+	CGO_ENABLED=0 go build -o tk -v
 
 .PHONY: docker
 docker:
