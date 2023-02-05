@@ -27,15 +27,40 @@ func init() {
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := context.Background()
-			keepCpu(0.7, 0.1, ctx)
-			keepMem(0.8, 0.1, ctx)
+			cpuPercent, err := cmd.Flags().GetFloat64("cpuPercent")
+			cobra.CheckErr(err)
+			cpuTolerant, err := cmd.Flags().GetFloat64("cpuTolerant")
+			cobra.CheckErr(err)
+			if cpuPercent < 0.0 || cpuPercent > 1.0 {
+				cobra.CheckErr("cpuPercent must between 0.0 and 1.0")
+			}
+			if cpuTolerant < -0.5 || cpuTolerant > 0.5 {
+				cobra.CheckErr("cpuTolerant must between -0.5 and 0.5")
+			}
+			memPercent, err := cmd.Flags().GetFloat64("memPercent")
+			cobra.CheckErr(err)
+			memTolerant, err := cmd.Flags().GetFloat64("memTolerant")
+			cobra.CheckErr(err)
+
+			if memPercent < 0.0 || memPercent > 1.0 {
+				cobra.CheckErr("memPercent must between 0.0 and 1.0")
+			}
+			if memTolerant < 0.0 || memTolerant > 0.5 {
+				cobra.CheckErr("memTolerant must between 0 and 0.5")
+			}
+
+			keepCpu(cpuPercent, cpuTolerant, ctx)
+
+			keepMem(memPercent, memTolerant, ctx)
+			fmt.Printf(" start ...")
 			<-ctx.Done()
 		},
 	}
-	resourceCmd.Flags().Float64("cpu", 0, "")
-	resourceCmd.Flags().Float64("cpuP", 0, "")
+	resourceCmd.Flags().Float64("cpuPercent", 0, "")
+	resourceCmd.MarkFlagRequired("cpu")
+	resourceCmd.Flags().Float64("cpuTolerant", 0.1, "")
 	resourceCmd.Flags().Float64("mem", 0, "")
-	resourceCmd.Flags().Float64("memP", 0, "")
+	resourceCmd.Flags().Float64("memP", 0.1, "")
 	osCmd.AddCommand(resourceCmd)
 }
 
@@ -49,6 +74,7 @@ func keepCpu(targetPercent, deltaPercent float64, ctx context.Context) error {
 	cobra.CheckErr(err)
 	totalCounts := logicalCounts * 1000
 	go func() {
+		lastUpdatedCount := 0
 	forEnd:
 		for {
 			select {
@@ -64,26 +90,30 @@ func keepCpu(targetPercent, deltaPercent float64, ctx context.Context) error {
 				currentPercent := percents[0] / 100.0
 
 				if currentPercent < targetPercent-deltaPercent {
-					averageDeltaCounts := int64((targetPercent-deltaPercent*rand.Float64()-currentPercent)*float64(totalCounts)) / int64(logicalCounts)
-
-					for i := 0; i < logicalCounts; i++ {
-						go func() {
-							select {
-							case <-ctx.Done():
-								return
-							default:
-								startedTime := time.Now().UnixMilli()
-								for (time.Now().UnixMilli() - startedTime) < averageDeltaCounts {
+					lastUpdatedCount = lastUpdatedCount + 1
+					if lastUpdatedCount > 5 {
+						averageDeltaCounts := int64((targetPercent-deltaPercent*rand.Float64()-currentPercent)*float64(totalCounts)) / int64(logicalCounts)
+						for i := 0; i < logicalCounts; i++ {
+							go func() {
+								select {
+								case <-ctx.Done():
+									return
+								default:
+									startedTime := time.Now().UnixMilli()
+									for (time.Now().UnixMilli() - startedTime) < averageDeltaCounts {
+									}
+									sleepMills := 1000 - (time.Now().UnixMilli() - startedTime)
+									if sleepMills <= 0 {
+										time.Sleep(0)
+									} else {
+										time.Sleep(time.Duration(sleepMills) * time.Millisecond)
+									}
 								}
-								sleepMills := 1000 - (time.Now().UnixMilli() - startedTime)
-								if sleepMills <= 0 {
-									time.Sleep(0)
-								} else {
-									time.Sleep(time.Duration(sleepMills) * time.Millisecond)
-								}
-							}
-						}()
+							}()
+						}
 					}
+				} else {
+					lastUpdatedCount = 0
 				}
 				sleepMills := 1000 - (time.Now().UnixMilli() - startedTime)
 				if sleepMills <= 0 {
@@ -101,6 +131,7 @@ func keepCpu(targetPercent, deltaPercent float64, ctx context.Context) error {
 func keepMem(targetPercent, deltaPercent float64, ctx context.Context) error {
 	go func() {
 		var sl []byte
+		lastUpdatedCount := 0
 		ticker := time.NewTicker(1 * time.Second)
 	forEnd:
 		for {
@@ -116,14 +147,16 @@ func keepMem(targetPercent, deltaPercent float64, ctx context.Context) error {
 					memory.UsedPercent)
 				currentPercent := memory.UsedPercent / 100.0
 				if currentPercent > (targetPercent + deltaPercent) { //高于上限
+					lastUpdatedCount = 0
 					sl = make([]byte, 0, 0)
 					fmt.Printf("reduce to: %v\n", units.HumanSize(0))
 				} else if currentPercent < (targetPercent - deltaPercent) { //低于下限
-					memSize := (targetPercent - currentPercent - deltaPercent*rand.Float64()) * float64(memory.Total)
-					sl = make([]byte, 0, int(memSize))
-					fmt.Printf("adjust to: %v\n", units.HumanSize(memSize))
-				} else {
-					fmt.Printf("do thing \n")
+					lastUpdatedCount = lastUpdatedCount + 1
+					if lastUpdatedCount > 5 {
+						memSize := (targetPercent - currentPercent - deltaPercent*rand.Float64()) * float64(memory.Total)
+						sl = make([]byte, 0, int(memSize))
+						fmt.Printf("adjust to: %v\n", units.HumanSize(memSize))
+					}
 				}
 			}
 		}
