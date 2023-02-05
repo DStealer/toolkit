@@ -56,11 +56,14 @@ func init() {
 			<-ctx.Done()
 		},
 	}
-	resourceCmd.Flags().Float64("cpuPercent", 0, "")
-	resourceCmd.MarkFlagRequired("cpu")
-	resourceCmd.Flags().Float64("cpuTolerant", 0.1, "")
-	resourceCmd.Flags().Float64("mem", 0, "")
-	resourceCmd.Flags().Float64("memP", 0.1, "")
+	resourceCmd.Flags().Float64("cpuPercent", 0, "cpu目标使用率")
+	resourceCmd.MarkFlagRequired("cpuPercent")
+	resourceCmd.Flags().Float64("cpuTolerant", 0.1, "cpu目标容忍使用率")
+
+	resourceCmd.Flags().Float64("memPercent", 0, "mem目标使用率")
+	resourceCmd.MarkFlagRequired("memPercent")
+	resourceCmd.Flags().Float64("memTolerant", 0.1, "mem目标容忍使用率")
+
 	osCmd.AddCommand(resourceCmd)
 }
 
