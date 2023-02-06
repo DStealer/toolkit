@@ -26,7 +26,8 @@ func init() {
 		Short: "系统使用率优化工具",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			ctx := context.Background()
+
+			ctx, cancelFunc := context.WithCancel(context.Background())
 			cpuPercent, err := cmd.Flags().GetFloat64("cpuPercent")
 			cobra.CheckErr(err)
 			cpuTolerant, err := cmd.Flags().GetFloat64("cpuTolerant")
@@ -48,12 +49,26 @@ func init() {
 			if memTolerant < 0.0 || memTolerant > 0.5 {
 				cobra.CheckErr("memTolerant must between 0 and 0.5")
 			}
+			durationMin, err := cmd.Flags().GetInt64("durationMin")
+			cobra.CheckErr(err)
 
 			keepCpu(cpuPercent, cpuTolerant, ctx)
 
 			keepMem(memPercent, memTolerant, ctx)
-			fmt.Printf(" start ...")
-			<-ctx.Done()
+
+			fmt.Printf(" start ...\n")
+			if durationMin >= 0 {
+				ticker := time.NewTicker(time.Duration(durationMin) * time.Minute)
+				select {
+				case <-ctx.Done():
+					fmt.Errorf("错误:%v\n", ctx.Err())
+				case <-ticker.C:
+					cancelFunc()
+					fmt.Printf("正常退出\n")
+				}
+			} else {
+				select {}
+			}
 		},
 	}
 	resourceCmd.Flags().Float64("cpuPercent", 0, "cpu目标使用率")
@@ -63,6 +78,8 @@ func init() {
 	resourceCmd.Flags().Float64("memPercent", 0, "mem目标使用率")
 	resourceCmd.MarkFlagRequired("memPercent")
 	resourceCmd.Flags().Float64("memTolerant", 0.1, "mem目标容忍使用率")
+
+	resourceCmd.Flags().Int64("durationMin", -1, "持续时长(分钟),-1表示永久")
 
 	osCmd.AddCommand(resourceCmd)
 }

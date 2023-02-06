@@ -20,5 +20,4 @@ func init() {
 	rootCmd.AddCommand(jarCmd)
 	rootCmd.AddCommand(logCmd)
 	rootCmd.AddCommand(jenkinsCmd)
-	rootCmd.AddCommand(osCmd)
 }
