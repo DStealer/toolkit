@@ -56,7 +56,6 @@ func init() {
 
 			keepMem(memPercent, memTolerant, ctx)
 
-			fmt.Printf(" start ...\n")
 			if durationMin >= 0 {
 				ticker := time.NewTicker(time.Duration(durationMin) * time.Minute)
 				select {
