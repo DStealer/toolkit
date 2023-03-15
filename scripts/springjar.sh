@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+mvn -e -B -U -pl=./ clean dependency:tree deploy
+
 java -Djarmode=layertools -jar $(find *-SNAPSHOT.jar) extract
 
 find dependencies/ -exec touch -t 197001010000 {} \;
