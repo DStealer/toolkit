@@ -10,7 +10,7 @@ find snapshot-dependencies/ -exec touch -t 197001010000 {} \;
 find application/ -exec touch -t 197001010000 {} \;
 
 cat <<EOF >Dockerfile
-FROM repo.gwsl.com:18080/library/jre-8u202-alpine:20221017
+FROM repo.dstealer.com:18080/library/jre-8u202-alpine:20221017
 COPY dependencies/ /app
 COPY spring-boot-loader/ /app
 COPY snapshot-dependencies/ /app
