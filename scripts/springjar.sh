@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 mvn -e -B -U -pl=./ clean dependency:tree deploy
 
 rm -rf dependencies/ spring-boot-loader/ snapshot-dependencies/ application/ Dockerfile
