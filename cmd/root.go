@@ -16,6 +16,7 @@ func Execute() error {
 
 func init() {
 	rootCmd.AddCommand(osCmd)
+	rootCmd.AddCommand(redisCmd)
 	rootCmd.AddCommand(sm4Cmd)
 	rootCmd.AddCommand(jarCmd)
 	rootCmd.AddCommand(logCmd)
