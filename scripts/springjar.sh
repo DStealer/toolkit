@@ -13,7 +13,7 @@ find target/application/ -exec touch -t 197001010000.00 {} \;
 
 TAG=repo.dstealer.com:18080/library/$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout):$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)-$(TZ='Asia/Shanghai' date +'%y%m%d%H%M%S')
 
-cat <<EOF >target/Dockerfile
+cat <<EOF > target/Dockerfile
 FROM repo.dstealer.com:18080/library/jre-8u202-alpine:20221017
 COPY dependencies/ /app
 COPY spring-boot-loader/ /app
