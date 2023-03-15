@@ -16,3 +16,5 @@ COPY application/ /app
 WORKDIR /app
 CMD ["tini", "--", "java", "org.springframework.boot.loader.JarLauncher"]
 EOF
+
+rm -rf dependencies/ spring-boot-loader/ snapshot-dependencies/ application/ Dockerfile
