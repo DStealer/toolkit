@@ -326,7 +326,7 @@ func TestMem(t *testing.T) {
 	go func() {
 		var sl []byte
 		ticker := time.NewTicker(1 * time.Second)
-		for _ = range ticker.C {
+		for range ticker.C {
 			memory, err := mem.VirtualMemory()
 			cobra.CheckErr(err)
 			fmt.Printf("Total: %v,Used:%v,Available:%v, Free:%v, UsedPercent:%f %%\n",
@@ -401,7 +401,11 @@ func TestCPU(t *testing.T) {
 }
 
 func TestResourceCmd(t *testing.T) {
-	cmd, args, err := osCmd.Traverse([]string{"resource"})
+	cmd, args, err := osCmd.Traverse([]string{"resource", "cpuPercent=0.8"})
 	cobra.CheckErr(err)
 	cmd.Run(cmd, args)
+}
+func TestKeepCpu(t *testing.T) {
+	keepCpu(0.8, 0.1, context.Background())
+	select {}
 }

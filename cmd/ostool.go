@@ -51,9 +51,9 @@ func init() {
 			}
 			durationMin, err := cmd.Flags().GetInt64("durationMin")
 			cobra.CheckErr(err)
-
+			fmt.Println("cpuPercent=", cpuPercent, "cpuTolerant=", cpuTolerant)
 			keepCpu(cpuPercent, cpuTolerant, ctx)
-
+			fmt.Println("memPercent=", cpuPercent, "memTolerant=", cpuTolerant)
 			keepMem(memPercent, memTolerant, ctx)
 
 			if durationMin >= 0 {
@@ -85,15 +85,13 @@ func init() {
 
 //保持cpu使用率
 func keepCpu(targetPercent, deltaPercent float64, ctx context.Context) error {
-
-	physicalCounts, err := cpu.Counts(false)
+	logicalCpus, err := cpu.Counts(true)
 	cobra.CheckErr(err)
-	Unused(physicalCounts)
-	logicalCounts, err := cpu.Counts(true)
-	cobra.CheckErr(err)
-	totalCounts := logicalCounts * 1000
+	totalMillis := logicalCpus * 1000
+	targetMillis := float64(totalMillis) * targetPercent
+	deltaMillis := float64(totalMillis) * deltaPercent
 	go func() {
-		lastUpdatedCount := 0
+		var lastDeltaMillis float64
 	forEnd:
 		for {
 			select {
@@ -107,33 +105,31 @@ func keepCpu(targetPercent, deltaPercent float64, ctx context.Context) error {
 					fmt.Printf("cpu: %v %%\n", percent/100.0)
 				}
 				currentPercent := percents[0] / 100.0
+				currentMillis := float64(totalMillis) * currentPercent
 
-				if currentPercent < targetPercent-deltaPercent {
-					lastUpdatedCount = lastUpdatedCount + 1
-					if lastUpdatedCount > 5 {
-						averageDeltaCounts := int64((targetPercent-deltaPercent*rand.Float64()-currentPercent)*float64(totalCounts)) / int64(logicalCounts)
-						for i := 0; i < logicalCounts; i++ {
-							go func() {
-								select {
-								case <-ctx.Done():
-									return
-								default:
-									startedTime := time.Now().UnixMilli()
-									for (time.Now().UnixMilli() - startedTime) < averageDeltaCounts {
-									}
-									sleepMills := 1000 - (time.Now().UnixMilli() - startedTime)
-									if sleepMills <= 0 {
-										time.Sleep(0)
-									} else {
-										time.Sleep(time.Duration(sleepMills) * time.Millisecond)
-									}
+				if (currentMillis-lastDeltaMillis)+deltaMillis < targetMillis {
+					lastDeltaMillis = targetMillis - deltaMillis*rand.Float64() - currentMillis + lastDeltaMillis
+					lastDeltaCountPerCpu := int64(lastDeltaMillis) / int64(logicalCpus)
+					for i := 0; i < logicalCpus; i++ {
+						go func() {
+							select {
+							case <-ctx.Done():
+								return
+							default:
+								startedTime := time.Now().UnixMilli()
+								for (time.Now().UnixMilli() - startedTime) < lastDeltaCountPerCpu {
 								}
-							}()
-						}
+								sleepMills := 1000 - (time.Now().UnixMilli() - startedTime)
+								if sleepMills <= 0 {
+									time.Sleep(0)
+								} else {
+									time.Sleep(time.Duration(sleepMills) * time.Millisecond)
+								}
+							}
+						}()
 					}
-				} else {
-					lastUpdatedCount = 0
 				}
+
 				sleepMills := 1000 - (time.Now().UnixMilli() - startedTime)
 				if sleepMills <= 0 {
 					time.Sleep(0 * time.Millisecond)
@@ -150,7 +146,6 @@ func keepCpu(targetPercent, deltaPercent float64, ctx context.Context) error {
 func keepMem(targetPercent, deltaPercent float64, ctx context.Context) error {
 	go func() {
 		var sl []byte
-		lastUpdatedCount := 0
 		ticker := time.NewTicker(1 * time.Second)
 	forEnd:
 		for {
@@ -166,16 +161,12 @@ func keepMem(targetPercent, deltaPercent float64, ctx context.Context) error {
 					memory.UsedPercent)
 				currentPercent := memory.UsedPercent / 100.0
 				if currentPercent > (targetPercent + deltaPercent) { //高于上限
-					lastUpdatedCount = 0
 					sl = make([]byte, 0, 0)
 					fmt.Printf("reduce to: %v\n", units.HumanSize(0))
 				} else if currentPercent < (targetPercent - deltaPercent) { //低于下限
-					lastUpdatedCount = lastUpdatedCount + 1
-					if lastUpdatedCount > 5 {
-						memSize := (targetPercent - currentPercent - deltaPercent*rand.Float64()) * float64(memory.Total)
-						sl = make([]byte, 0, int(memSize))
-						fmt.Printf("adjust to: %v\n", units.HumanSize(memSize))
-					}
+					memSize := (targetPercent - currentPercent - deltaPercent*rand.Float64()) * float64(memory.Total)
+					sl = make([]byte, 0, int(memSize))
+					fmt.Printf("adjust to: %v\n", units.HumanSize(memSize))
 				}
 			}
 		}
