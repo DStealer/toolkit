@@ -7,7 +7,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:     "tk",
 	Short:   "运维工具箱",
-	Version: "v0.0.2",
+	Version: "v0.0.3",
 }
 
 func Execute() error {
