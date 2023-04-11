@@ -216,15 +216,15 @@ func TestK8s(t *testing.T) {
 
 func TestPortForward(t *testing.T) {
 	config, err := clientcmd.BuildConfigFromFlags("", "/home/dstealer/.kube/config")
-	stopChannel := make(chan struct{}, 1)
-	readyChannel := make(chan struct{})
-
 	if err != nil {
 		t.Error(err)
 	}
 	config.BearerToken = ""
 
 	clientSet := kubernetes.NewForConfigOrDie(config)
+
+	stopChannel := make(chan struct{}, 1)
+	readyChannel := make(chan struct{})
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
