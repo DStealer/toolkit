@@ -246,7 +246,7 @@ func TestPortForward(t *testing.T) {
 		t.Error(fmt.Errorf("unable to forward port because pod is not running. Current status=%v", pod.Status.Phase))
 	}
 
-	req := clientSet.RESTClient().Post().
+	req := clientSet.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Namespace(pod.Namespace).
 		Name(pod.Name).
