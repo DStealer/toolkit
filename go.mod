@@ -1,6 +1,6 @@
 module github.com/dstealer/devops
 
-go 1.17
+go 1.19
 
 require (
 	github.com/ZZMarquis/gm v1.3.2
@@ -33,6 +33,7 @@ require (
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
+	github.com/docker/spdystream v0.0.0-20160310174837-449fdfce4d96 // indirect
 	github.com/go-logr/logr v0.2.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/googleapis v1.4.0 // indirect
