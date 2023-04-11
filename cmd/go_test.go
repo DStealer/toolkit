@@ -248,8 +248,8 @@ func TestPortForward(t *testing.T) {
 
 	req := clientSet.RESTClient().Post().
 		Resource("pods").
-		Namespace("kube-system").
-		Name("coredns-787d4945fb-c2xs8").
+		Namespace(pod.Namespace).
+		Name(pod.Name).
 		SubResource("portforward")
 
 	transport, upgrader, err := spdy.RoundTripperFor(config)
