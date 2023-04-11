@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 	"math/rand"
@@ -215,7 +216,10 @@ func TestK8s(t *testing.T) {
 }
 
 func TestPortForward(t *testing.T) {
-	config, err := clientcmd.BuildConfigFromFlags("", "/home/dstealer/.kube/config")
+	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: "/home/dstealer/.kube/config"},
+		&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{InsecureSkipTLSVerify: true}}).ClientConfig()
+
 	if err != nil {
 		t.Error(err)
 	}
