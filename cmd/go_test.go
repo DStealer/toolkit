@@ -19,9 +19,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/portforward"
+	"k8s.io/client-go/transport/spdy"
 	"math/rand"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -209,6 +212,62 @@ func TestK8s(t *testing.T) {
 		t.Error(err)
 	}
 	fmt.Println(podList)
+}
+
+func TestPortForward(t *testing.T) {
+	config, err := clientcmd.BuildConfigFromFlags("", "/home/dstealer/.kube/config")
+	stopChannel := make(chan struct{}, 1)
+	readyChannel := make(chan struct{})
+
+	if err != nil {
+		t.Error(err)
+	}
+	config.BearerToken = ""
+
+	clientSet := kubernetes.NewForConfigOrDie(config)
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt)
+	defer signal.Stop(signals)
+
+	go func() {
+		<-signals
+		if stopChannel != nil {
+			close(stopChannel)
+		}
+	}()
+
+	pod, err := clientSet.CoreV1().Pods("kube-system").Get(context.TODO(), "coredns-787d4945fb-c2xs8", metav1.GetOptions{})
+	if err != nil {
+		t.Error(err)
+	}
+
+	if pod.Status.Phase != v1.PodRunning {
+		t.Error(fmt.Errorf("unable to forward port because pod is not running. Current status=%v", pod.Status.Phase))
+	}
+
+	req := clientSet.RESTClient().Post().
+		Resource("pods").
+		Namespace("kube-system").
+		Name("coredns-787d4945fb-c2xs8").
+		SubResource("portforward")
+
+	transport, upgrader, err := spdy.RoundTripperFor(config)
+	if err != nil {
+		t.Error(err)
+	}
+
+	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
+
+	fw, err := portforward.NewOnAddresses(dialer, []string{"127.0.0.1"}, []string{"9153:9153"}, stopChannel, readyChannel, os.Stdout, os.Stderr)
+
+	if err != nil {
+		t.Error(err)
+	}
+	err = fw.ForwardPorts()
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestIndexer(t *testing.T) {
