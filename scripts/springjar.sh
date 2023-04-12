@@ -27,4 +27,6 @@ buildah build --iidfile=target/idfile.txt target
 
 buildah push --rm --digestfile=target/digestfile $(cat target/idfile.txt) docker-daemon:$IMAGE_TAG
 
+cat $IMAGE_TAG@$(cat target/digestfile) > target/digestfile
+
 buildah rmi $(cat target/idfile.txt)
