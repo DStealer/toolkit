@@ -14,6 +14,7 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -22,7 +23,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 	"math/rand"
@@ -220,9 +220,7 @@ func TestK8s(t *testing.T) {
 
 // ssh端口转发
 func TestPortForward(t *testing.T) {
-	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: "/home/dstealer/.kube/config"},
-		&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{InsecureSkipTLSVerify: true}}).ClientConfig()
+	config, err := clientcmd.BuildConfigFromFlags("", "/home/dstealer/.kube/config")
 
 	if err != nil {
 		t.Error(err)
@@ -244,10 +242,8 @@ func TestPortForward(t *testing.T) {
 	}()
 
 	pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot", metav1.GetOptions{})
-	if err != nil {
-		t.Error(err)
-	}
-	if pod == nil {
+
+	if errors.IsNotFound(err) {
 		pod = &v1.Pod{
 			TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
 			ObjectMeta: metav1.ObjectMeta{
@@ -271,6 +267,13 @@ func TestPortForward(t *testing.T) {
 						},
 					},
 					LivenessProbe: &v1.Probe{
+						Handler: v1.Handler{
+							TCPSocket: &v1.TCPSocketAction{
+								Port: intstr.FromString("sshd"),
+							},
+						},
+					},
+					StartupProbe: &v1.Probe{
 						Handler: v1.Handler{
 							TCPSocket: &v1.TCPSocketAction{
 								Port: intstr.FromString("sshd"),
