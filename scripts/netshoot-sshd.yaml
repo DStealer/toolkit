@@ -76,12 +76,15 @@ metadata:
 spec:
   containers:
     - name: app
-      image: registry.coded.com/library/netshoot-sshd:v1.0
+      image: registry.coded.com/library/netshoot-sshd:latest
       imagePullPolicy: IfNotPresent
       ports:
         - containerPort: 22
           name: sshd
           protocol: TCP
+      startupProbe:
+        tcpSocket:
+          port: sshd
       readinessProbe:
         tcpSocket:
           port: sshd
