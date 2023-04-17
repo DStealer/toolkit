@@ -14,7 +14,10 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -215,6 +218,7 @@ func TestK8s(t *testing.T) {
 	fmt.Println(podList)
 }
 
+// ssh端口转发
 func TestPortForward(t *testing.T) {
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: "/home/dstealer/.kube/config"},
@@ -223,8 +227,6 @@ func TestPortForward(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	config.BearerToken = ""
-
 	clientSet := kubernetes.NewForConfigOrDie(config)
 
 	stopChannel := make(chan struct{}, 1)
@@ -241,9 +243,73 @@ func TestPortForward(t *testing.T) {
 		}
 	}()
 
-	pod, err := clientSet.CoreV1().Pods("kube-system").Get(context.TODO(), "coredns-787d4945fb-c2xs8", metav1.GetOptions{})
+	pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot", metav1.GetOptions{})
 	if err != nil {
 		t.Error(err)
+	}
+	if pod == nil {
+		pod = &v1.Pod{
+			TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "netshoot",
+				Namespace: "default",
+				Labels:    map[string]string{"app": "netshoot", "tier": "devops"},
+			},
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{{
+					Name:            "app",
+					Image:           "registry.coded.com/library/netshoot-sshd:latest",
+					ImagePullPolicy: v1.PullIfNotPresent,
+					Ports: []v1.ContainerPort{
+						{Name: "sshd", ContainerPort: 22, Protocol: v1.ProtocolTCP},
+					},
+					ReadinessProbe: &v1.Probe{
+						Handler: v1.Handler{
+							TCPSocket: &v1.TCPSocketAction{
+								Port: intstr.FromString("sshd"),
+							},
+						},
+					},
+					LivenessProbe: &v1.Probe{
+						Handler: v1.Handler{
+							TCPSocket: &v1.TCPSocketAction{
+								Port: intstr.FromString("sshd"),
+							},
+						},
+					},
+					Resources: v1.ResourceRequirements{
+						Requests: map[v1.ResourceName]resource.Quantity{v1.ResourceCPU: resource.MustParse("0.1"), v1.ResourceMemory: resource.MustParse("128Mi")},
+						Limits:   map[v1.ResourceName]resource.Quantity{v1.ResourceCPU: resource.MustParse("1"), v1.ResourceMemory: resource.MustParse("512Mi")},
+					},
+				}},
+			},
+		}
+		_, err := clientSet.CoreV1().Pods("default").Create(context.Background(), pod, metav1.CreateOptions{})
+		if err != nil {
+			t.Error(err)
+		}
+		err = wait.PollImmediate(1*time.Second, 5*time.Minute, func() (bool, error) {
+
+			pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot", metav1.GetOptions{})
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error getting Pod :%q [%v]\n", "netshoot", err)
+				return false, nil
+			}
+			if pod == nil {
+				return false, nil
+			}
+			if pod.Status.Phase != v1.PodRunning {
+				return false, nil
+			}
+			return true, nil
+		})
+		if err != nil {
+			t.Error(err)
+		}
+		pod, err = clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot", metav1.GetOptions{})
+		if err != nil {
+			t.Error(err)
+		}
 	}
 
 	if pod.Status.Phase != v1.PodRunning {
@@ -263,7 +329,7 @@ func TestPortForward(t *testing.T) {
 
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
 
-	fw, err := portforward.NewOnAddresses(dialer, []string{"127.0.0.1"}, []string{"9153:9153"}, stopChannel, readyChannel, os.Stdout, os.Stderr)
+	fw, err := portforward.NewOnAddresses(dialer, []string{"127.0.0.1"}, []string{"22622:22"}, stopChannel, readyChannel, os.Stdout, os.Stderr)
 
 	if err != nil {
 		t.Error(err)
@@ -392,8 +458,7 @@ func TestMem(t *testing.T) {
 		for range ticker.C {
 			memory, err := mem.VirtualMemory()
 			cobra.CheckErr(err)
-			fmt.Printf("Total: %v,Used:%v,Available:%v, Free:%v, UsedPercent:%f %%\n",
-				memory.Total/1024/1024, memory.Used/1024/1024, memory.Available/1024/1024, memory.Free/1024/1024, memory.UsedPercent)
+			fmt.Printf("Total: %v,Used:%v,Available:%v, Free:%v, UsedPercent:%f %%\n", memory.Total/1024/1024, memory.Used/1024/1024, memory.Available/1024/1024, memory.Free/1024/1024, memory.UsedPercent)
 			currentPercent := memory.UsedPercent / 100.0
 			if currentPercent > (targetPercent + deltaPercent) { //高于上限
 				sl = make([]byte, 0, 0)
