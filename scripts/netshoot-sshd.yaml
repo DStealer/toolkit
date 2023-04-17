@@ -1,0 +1,94 @@
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: netshoot
+  namespace: default
+  labels:
+    app: netshoot
+    tier: devops
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "pods","pods/log","pods/attach","pods/exec","pods/portforward","pods/proxy" ]
+    verbs: [ "get","list","watch" ]
+    resourceNames: [ "netshoot" ]
+  - apiGroups: [ "" ]
+    resources: [ "pods/attach","pods/exec","pods/portforward","pods/proxy" ]
+    verbs: [ "create","delete","deletecollection","patch","update" ]
+    resourceNames: [ "netshoot" ]
+  - apiGroups: [ "" ]
+    resources: [ "services" ]
+    verbs: [ "get","list","watch" ]
+    resourceNames: [ "netshoot" ]
+  - apiGroups: [ "" ]
+    resources: [ "services" ]
+    verbs: [ "create","delete","update" ]
+    resourceNames: [ "netshoot" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer
+  namespace: default
+  labels:
+    app: netshoot
+    tier: devops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: netshoot
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: developer
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: dev
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netshoot
+  namespace: default
+  labels:
+    app: netshoot
+    tier: devops
+spec:
+  selector:
+    app: netshoot
+    tier: devops
+  type: NodePort
+  ports:
+    - name: sshd
+      port: 22
+      protocol: TCP
+      targetPort: sshd
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: netshoot
+  namespace: default
+  labels:
+    app: netshoot
+    tier: devops
+spec:
+  containers:
+    - name: app
+      image: registry.coded.com/library/netshoot-sshd:v1.0
+      ports:
+        - containerPort: 22
+          name: sshd
+          protocol: TCP
+      lifecycle:
+        postStart:
+          exec:
+            command: [ "/bin/sh","-c","exec echo appuser:4bJnTCnZL6jiC0a2ORFXGyfVqjoYghOu | chpasswd" ]
+      resources:
+        requests:
+          cpu: "0.1"
+          memory: 256Mi
+        limits:
+          cpu: "1"
+          memory: 512Mi
