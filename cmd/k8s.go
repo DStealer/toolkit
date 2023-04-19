@@ -29,6 +29,9 @@ var (
 )
 
 func init() {
+
+	k8sCmd.PersistentFlags().String("kubeconfig", "/home/dstealer/.kube/config", "Path to the kubeconfig file to use for CLI requests.")
+
 	sshdCmd := &cobra.Command{
 		Use:   "ssh [args]",
 		Short: "ssh网络分析工具",
@@ -43,12 +46,12 @@ func init() {
 					close(stopChannel)
 				}
 			}()
-
-			config, err := clientcmd.BuildConfigFromFlags("", "/home/dstealer/.kube/config")
+			kubeconfig := cmd.Flag("kubeconfig").Value.String()
+			config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 			cobra.CheckErr(err)
 			clientSet := kubernetes.NewForConfigOrDie(config)
 			pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot", metav1.GetOptions{})
-
+			image := cmd.Flag("image").Value.String()
 			if errors.IsNotFound(err) {
 				pod = &v1.Pod{
 					TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
@@ -60,7 +63,7 @@ func init() {
 					Spec: v1.PodSpec{
 						Containers: []v1.Container{{
 							Name:            "app",
-							Image:           "registry.develop.com:5000/dstealer/netshoot-sshd:latest",
+							Image:           image,
 							ImagePullPolicy: v1.PullIfNotPresent,
 							Ports: []v1.ContainerPort{
 								{Name: "sshd", ContainerPort: 22, Protocol: v1.ProtocolTCP},
@@ -142,5 +145,7 @@ func init() {
 			cobra.CheckErr(err)
 		},
 	}
+	sshdCmd.Flags().String("image", "registry.develop.com:5000/dstealer/netshoot-sshd:latest", "使用的镜像")
 	k8sCmd.AddCommand(sshdCmd)
+
 }
