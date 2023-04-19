@@ -60,7 +60,7 @@ func init() {
 					Spec: v1.PodSpec{
 						Containers: []v1.Container{{
 							Name:            "app",
-							Image:           "registry.coded.com:5000/library/netshoot-sshd:latest",
+							Image:           "registry.develop.com:5000/dstealer/netshoot-sshd:latest",
 							ImagePullPolicy: v1.PullIfNotPresent,
 							Ports: []v1.ContainerPort{
 								{Name: "sshd", ContainerPort: 22, Protocol: v1.ProtocolTCP},
@@ -96,7 +96,7 @@ func init() {
 				_, err := clientSet.CoreV1().Pods(pod.Namespace).Create(context.Background(), pod, metav1.CreateOptions{})
 				cobra.CheckErr(err)
 
-				err = wait.PollImmediate(1*time.Second, 5*time.Minute, func() (bool, error) {
+				err = wait.PollImmediateUntil(1*time.Second, func() (bool, error) {
 					newPod, err := clientSet.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "Error getting Pod :%q [%v]\n", newPod.Name, err)
@@ -110,7 +110,8 @@ func init() {
 						return false, nil
 					}
 					return true, nil
-				})
+				}, stopChannel)
+
 				cobra.CheckErr(err)
 
 				pod, err = clientSet.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
