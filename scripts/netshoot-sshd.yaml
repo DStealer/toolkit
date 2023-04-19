@@ -76,7 +76,7 @@ metadata:
 spec:
   containers:
     - name: app
-      image: registry.coded.com/library/netshoot-sshd:latest
+      image: registry.develop.com:5000/dstealer/netshoot-sshd:latest
       imagePullPolicy: IfNotPresent
       ports:
         - containerPort: 22

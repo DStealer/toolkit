@@ -254,7 +254,7 @@ func TestPortForward(t *testing.T) {
 			Spec: v1.PodSpec{
 				Containers: []v1.Container{{
 					Name:            "app",
-					Image:           "registry.coded.com/library/netshoot-sshd:latest",
+					Image:           "registry.develop.com:5000/dstealer/netshoot-sshd:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Ports: []v1.ContainerPort{
 						{Name: "sshd", ContainerPort: 22, Protocol: v1.ProtocolTCP},
