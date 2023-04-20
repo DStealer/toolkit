@@ -70,7 +70,7 @@ func init() {
 				pod = &v1.Pod{
 					TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "netshoot",
+						Name:      "netshoot-ssh",
 						Namespace: "default",
 					},
 					Spec: v1.PodSpec{

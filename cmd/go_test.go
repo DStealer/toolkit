@@ -540,3 +540,9 @@ func TestKeepCpu(t *testing.T) {
 	keepCpu(0.8, 0.1, context.Background())
 	select {}
 }
+func TestSSHCmd(t *testing.T) {
+	cmd, args, err := k8sCmd.Traverse([]string{"ssh"})
+	cobra.CheckErr(err)
+	cmd.Run(cmd, args)
+
+}
