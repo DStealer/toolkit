@@ -35,7 +35,7 @@ func init() {
 
 	k8sCmd.PersistentFlags().String("kubeconfig", filepath.Join(homedir.HomeDir(), ".kube", "config"), "Path to the kubeconfig file to use for CLI requests.")
 
-	sshdCmd := &cobra.Command{
+	sshCmd := &cobra.Command{
 		Use:   "ssh [args]",
 		Short: "ssh网络分析工具",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -155,8 +155,8 @@ func init() {
 			cobra.CheckErr(err)
 		},
 	}
-	sshdCmd.Flags().String("image", "registry.develop.com:5000/dstealer/netshoot-sshd:latest", "使用的镜像")
-	sshdCmd.Flags().String("context", "", "当前使用的上下文环境")
-	k8sCmd.AddCommand(sshdCmd)
+	sshCmd.Flags().String("image", "registry.develop.com:5000/dstealer/netshoot-sshd:latest", "使用的镜像")
+	sshCmd.Flags().String("context", "", "当前使用的上下文环境")
+	k8sCmd.AddCommand(sshCmd)
 
 }
