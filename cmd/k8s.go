@@ -12,12 +12,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
+	"k8s.io/client-go/util/homedir"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"time"
 )
 
@@ -30,7 +33,7 @@ var (
 
 func init() {
 
-	k8sCmd.PersistentFlags().String("kubeconfig", "/home/dstealer/.kube/config", "Path to the kubeconfig file to use for CLI requests.")
+	k8sCmd.PersistentFlags().String("kubeconfig", filepath.Join(homedir.HomeDir(), ".kube", "config"), "Path to the kubeconfig file to use for CLI requests.")
 
 	sshdCmd := &cobra.Command{
 		Use:   "ssh [args]",
@@ -47,8 +50,14 @@ func init() {
 				}
 			}()
 			kubeconfig := cmd.Flag("kubeconfig").Value.String()
-			config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-			config.Insecure = true
+
+			currentContext := cmd.Flag("context").Value.String()
+
+			clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+				&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
+				&clientcmd.ConfigOverrides{CurrentContext: currentContext, ClusterInfo: clientcmdapi.Cluster{InsecureSkipTLSVerify: true}})
+
+			config, err := clientConfig.ClientConfig()
 
 			cobra.CheckErr(err)
 			clientSet := kubernetes.NewForConfigOrDie(config)
@@ -148,6 +157,7 @@ func init() {
 		},
 	}
 	sshdCmd.Flags().String("image", "registry.develop.com:5000/dstealer/netshoot-sshd:latest", "使用的镜像")
+	sshdCmd.Flags().String("context", "", "当前使用的上下文环境")
 	k8sCmd.AddCommand(sshdCmd)
 
 }
