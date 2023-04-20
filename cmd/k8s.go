@@ -108,13 +108,6 @@ func init() {
 								Requests: map[v1.ResourceName]resource.Quantity{v1.ResourceCPU: resource.MustParse("0.1"), v1.ResourceMemory: resource.MustParse("128Mi")},
 								Limits:   map[v1.ResourceName]resource.Quantity{v1.ResourceCPU: resource.MustParse("1"), v1.ResourceMemory: resource.MustParse("512Mi")},
 							},
-							Lifecycle: &v1.Lifecycle{
-								PostStart: &v1.Handler{
-									Exec: &v1.ExecAction{
-										Command: []string{"/bin/sh", "-c", "exec echo appuser:4bJnTCnZL6jiC0a2ORFXGyfVqjoYghOu | chpasswd"},
-									},
-								},
-							},
 						}},
 					},
 				}
