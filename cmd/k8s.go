@@ -48,6 +48,8 @@ func init() {
 			}()
 			kubeconfig := cmd.Flag("kubeconfig").Value.String()
 			config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+			config.Insecure = true
+
 			cobra.CheckErr(err)
 			clientSet := kubernetes.NewForConfigOrDie(config)
 			pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot", metav1.GetOptions{})
