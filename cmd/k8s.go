@@ -171,7 +171,7 @@ func init() {
 	sshCmd.Flags().String("image", "registry.develop.com:5000/library/netshoot-sshd:latest", "使用的镜像")
 	sshCmd.Flags().String("context", "", "当前使用的上下文环境")
 	sshCmd.Flags().Int("local-port", 22622, "使用的本地端口")
-	sshCmd.Flags().String("password", "4bJnTCnZL6jiC0a2ORFXGyfVqjoYghOu", "默认密码")
+	sshCmd.Flags().String("password", "4bJnTCnZL6jiC0a2ORFXGyfVqjoYghOu", "默认首次初始化密码")
 	k8sCmd.AddCommand(sshCmd)
 
 }
