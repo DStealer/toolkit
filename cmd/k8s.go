@@ -140,7 +140,7 @@ func init() {
 				}, stopChannel)
 
 				cobra.CheckErr(err)
-
+				fmt.Println("ssh密码:", sshPassword)
 				pod, err = clientSet.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 				cobra.CheckErr(err)
 			}
