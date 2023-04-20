@@ -61,7 +61,7 @@ func init() {
 
 			cobra.CheckErr(err)
 			clientSet := kubernetes.NewForConfigOrDie(config)
-			pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot", metav1.GetOptions{})
+			pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot-ssh", metav1.GetOptions{})
 			image := cmd.Flag("image").Value.String()
 			if errors.IsNotFound(err) {
 				pod = &v1.Pod{
@@ -69,7 +69,6 @@ func init() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "netshoot",
 						Namespace: "default",
-						Labels:    map[string]string{"app": "netshoot", "tier": "devops"},
 					},
 					Spec: v1.PodSpec{
 						Containers: []v1.Container{{
@@ -77,26 +76,26 @@ func init() {
 							Image:           image,
 							ImagePullPolicy: v1.PullIfNotPresent,
 							Ports: []v1.ContainerPort{
-								{Name: "sshd", ContainerPort: 22, Protocol: v1.ProtocolTCP},
+								{Name: "ssh", ContainerPort: 22, Protocol: v1.ProtocolTCP},
 							},
 							ReadinessProbe: &v1.Probe{
 								Handler: v1.Handler{
 									TCPSocket: &v1.TCPSocketAction{
-										Port: intstr.FromString("sshd"),
+										Port: intstr.FromString("ssh"),
 									},
 								},
 							},
 							LivenessProbe: &v1.Probe{
 								Handler: v1.Handler{
 									TCPSocket: &v1.TCPSocketAction{
-										Port: intstr.FromString("sshd"),
+										Port: intstr.FromString("ssh"),
 									},
 								},
 							},
 							StartupProbe: &v1.Probe{
 								Handler: v1.Handler{
 									TCPSocket: &v1.TCPSocketAction{
-										Port: intstr.FromString("sshd"),
+										Port: intstr.FromString("ssh"),
 									},
 								},
 							},
