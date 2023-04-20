@@ -67,6 +67,7 @@ func init() {
 			image := cmd.Flag("image").Value.String()
 
 			if errors.IsNotFound(err) {
+				password := cmd.Flag("password").Value.String()
 				pod = &v1.Pod{
 					TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
 					ObjectMeta: metav1.ObjectMeta{
@@ -105,6 +106,13 @@ func init() {
 							Resources: v1.ResourceRequirements{
 								Requests: map[v1.ResourceName]resource.Quantity{v1.ResourceCPU: resource.MustParse("0.1"), v1.ResourceMemory: resource.MustParse("128Mi")},
 								Limits:   map[v1.ResourceName]resource.Quantity{v1.ResourceCPU: resource.MustParse("1"), v1.ResourceMemory: resource.MustParse("512Mi")},
+							},
+							Lifecycle: &v1.Lifecycle{
+								PostStart: &v1.Handler{
+									Exec: &v1.ExecAction{
+										Command: []string{"/bin/sh", "-c", fmt.Sprintf("exec echo appuser:%v | chpasswd", password)},
+									},
+								},
 							},
 						}},
 					},
@@ -151,15 +159,18 @@ func init() {
 			dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
 
 			readyChannel := make(chan struct{})
-			fw, err := portforward.NewOnAddresses(dialer, []string{"127.0.0.1"}, []string{"22622:22"}, stopChannel, readyChannel, os.Stdout, os.Stderr)
+			localPort := cmd.Flag("local-port").Value.String()
+			fw, err := portforward.NewOnAddresses(dialer, []string{"127.0.0.1"}, []string{fmt.Sprintf("%v:22", localPort)}, stopChannel, readyChannel, os.Stdout, os.Stderr)
 			cobra.CheckErr(err)
-			log.Printf("ssh port listen on 127.0.0.1:%v \n", 22622)
+			log.Printf("ssh port listen on 127.0.0.1:%v \n", localPort)
 			err = fw.ForwardPorts()
 			cobra.CheckErr(err)
 		},
 	}
 	sshCmd.Flags().String("image", "registry.develop.com:5000/dstealer/netshoot-sshd:latest", "使用的镜像")
 	sshCmd.Flags().String("context", "", "当前使用的上下文环境")
+	sshCmd.Flags().Int("local-port", 22622, "使用的本地端口")
+	sshCmd.Flags().String("password", "4bJnTCnZL6jiC0a2ORFXGyfVqjoYghOu", "默认密码")
 	k8sCmd.AddCommand(sshCmd)
 
 }
