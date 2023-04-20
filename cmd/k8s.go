@@ -69,6 +69,8 @@ func init() {
 			if errors.IsNotFound(err) {
 				image, err := cmd.Flags().GetString("image")
 				cobra.CheckErr(err)
+				sshPassword, err := cmd.Flags().GetString("password")
+				cobra.CheckErr(err)
 				pod = &v1.Pod{
 					TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
 					ObjectMeta: metav1.ObjectMeta{
@@ -111,7 +113,7 @@ func init() {
 							Lifecycle: &v1.Lifecycle{
 								PostStart: &v1.Handler{
 									Exec: &v1.ExecAction{
-										Command: []string{"/bin/sh", "-c", fmt.Sprintf("exec echo appuser:%v | chpasswd", password)},
+										Command: []string{"/bin/sh", "-c", fmt.Sprintf("exec echo appuser:%v | chpasswd", sshPassword)},
 									},
 								},
 							},
@@ -169,7 +171,7 @@ func init() {
 	sshCmd.Flags().String("image", "registry.develop.com:5000/dstealer/netshoot-sshd:latest", "使用的镜像")
 	sshCmd.Flags().String("context", "", "当前使用的上下文环境")
 	sshCmd.Flags().Int("local-port", 22622, "使用的本地端口")
-	sshCmd.Flags().Bool("reset-password", true, "重置密码")
+	sshCmd.Flags().String("password", "4bJnTCnZL6jiC0a2ORFXGyfVqjoYghOu", "默认密码")
 	k8sCmd.AddCommand(sshCmd)
 
 }
