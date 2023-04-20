@@ -38,6 +38,7 @@ func init() {
 	sshCmd := &cobra.Command{
 		Use:   "ssh [args]",
 		Short: "ssh网络分析工具",
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			stopChannel := make(chan struct{}, 1)
 			signals := make(chan os.Signal, 1)
@@ -62,7 +63,9 @@ func init() {
 			cobra.CheckErr(err)
 			clientSet := kubernetes.NewForConfigOrDie(config)
 			pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot-ssh", metav1.GetOptions{})
+
 			image := cmd.Flag("image").Value.String()
+
 			if errors.IsNotFound(err) {
 				pod = &v1.Pod{
 					TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
