@@ -64,7 +64,7 @@ func init() {
 
 			cobra.CheckErr(err)
 			clientSet := kubernetes.NewForConfigOrDie(config)
-			pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot-ssh", metav1.GetOptions{})
+			pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot", metav1.GetOptions{})
 
 			if errors.IsNotFound(err) {
 				image, err := cmd.Flags().GetString("image")
@@ -72,7 +72,7 @@ func init() {
 				pod = &v1.Pod{
 					TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "netshoot-ssh",
+						Name:      "netshoot",
 						Namespace: "default",
 					},
 					Spec: v1.PodSpec{
