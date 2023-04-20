@@ -50,9 +50,11 @@ func init() {
 					close(stopChannel)
 				}
 			}()
-			kubeconfig := cmd.Flag("kubeconfig").Value.String()
+			kubeconfig, err := cmd.Flags().GetString("kubeconfig")
+			cobra.CheckErr(err)
 
-			currentContext := cmd.Flag("context").Value.String()
+			currentContext, err := cmd.Flags().GetString("context")
+			cobra.CheckErr(err)
 
 			clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 				&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
@@ -65,8 +67,8 @@ func init() {
 			pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot-ssh", metav1.GetOptions{})
 
 			if errors.IsNotFound(err) {
-				image := cmd.Flag("image").Value.String()
-				password := cmd.Flag("password").Value.String()
+				image, err := cmd.Flags().GetString("image")
+				cobra.CheckErr(err)
 				pod = &v1.Pod{
 					TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
 					ObjectMeta: metav1.ObjectMeta{
@@ -116,7 +118,7 @@ func init() {
 						}},
 					},
 				}
-				_, err := clientSet.CoreV1().Pods(pod.Namespace).Create(context.Background(), pod, metav1.CreateOptions{})
+				_, err = clientSet.CoreV1().Pods(pod.Namespace).Create(context.Background(), pod, metav1.CreateOptions{})
 				cobra.CheckErr(err)
 
 				err = wait.PollImmediateUntil(1*time.Second, func() (bool, error) {
@@ -167,7 +169,7 @@ func init() {
 	sshCmd.Flags().String("image", "registry.develop.com:5000/dstealer/netshoot-sshd:latest", "使用的镜像")
 	sshCmd.Flags().String("context", "", "当前使用的上下文环境")
 	sshCmd.Flags().Int("local-port", 22622, "使用的本地端口")
-	sshCmd.Flags().String("password", "4bJnTCnZL6jiC0a2ORFXGyfVqjoYghOu", "默认密码")
+	sshCmd.Flags().Bool("reset-password", true, "重置密码")
 	k8sCmd.AddCommand(sshCmd)
 
 }
