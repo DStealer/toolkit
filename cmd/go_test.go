@@ -3,10 +3,15 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"github.com/ZZMarquis/gm/sm4"
 	"github.com/containerd/containerd"
+	mysqlclient "github.com/go-mysql-org/go-mysql/client"
+	_ "github.com/go-mysql-org/go-mysql/driver"
+	"github.com/go-mysql-org/go-mysql/mysql"
+	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/heroku/docker-registry-client/registry"
 	"github.com/prometheus/common/log"
 	"github.com/robfig/cron"
@@ -539,4 +544,43 @@ func TestResourceCmd(t *testing.T) {
 func TestKeepCpu(t *testing.T) {
 	keepCpu(0.8, 0.1, context.Background())
 	select {}
+}
+
+func TestMysql(t *testing.T) {
+	dsn := "root@127.0.0.1:3306?test"
+	db, _ := sql.Open("mysql", dsn)
+	err := db.Ping()
+	cobra.CheckErr(err)
+	db.Close()
+}
+func TestMysql2(t *testing.T) {
+	config := replication.BinlogSyncerConfig{
+		ServerID: 100,
+		Flavor:   "mysql",
+		Host:     "127.0.0.1",
+		Port:     3306,
+		User:     "root",
+		Password: "",
+	}
+	syncer := replication.NewBinlogSyncer(config)
+	sync, err := syncer.StartSync(mysql.Position{})
+	cobra.CheckErr(err)
+	event, err := sync.GetEvent(context.Background())
+	cobra.CheckErr(err)
+	event.Dump(os.Stdout)
+}
+func TestMysql3(t *testing.T) {
+	conn, err := mysqlclient.Connect("127.0.0.1:3306", "root", "", "test", func(conn *mysqlclient.Conn) {
+		conn.UseSSL(false)
+	})
+	cobra.CheckErr(err)
+	defer conn.Close()
+	var result mysql.Result
+	_ = conn.ExecuteSelectStreaming("select * from user ", &result, func(row []mysql.FieldValue) error {
+		for idx, val := range row {
+			field := result.Fields[idx]
+			fmt.Println(val, field)
+		}
+		return nil
+	}, nil)
 }
