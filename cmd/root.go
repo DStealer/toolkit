@@ -22,4 +22,5 @@ func init() {
 	rootCmd.AddCommand(logCmd)
 	rootCmd.AddCommand(jenkinsCmd)
 	rootCmd.AddCommand(k8sCmd)
+	rootCmd.AddCommand(mysqlCmd)
 }
