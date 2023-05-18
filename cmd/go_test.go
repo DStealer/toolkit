@@ -570,17 +570,54 @@ func TestMysql2(t *testing.T) {
 	event.Dump(os.Stdout)
 }
 func TestMysql3(t *testing.T) {
-	conn, err := mysqlclient.Connect("127.0.0.1:3306", "root", "", "test", func(conn *mysqlclient.Conn) {
-		conn.UseSSL(false)
-	})
+	conn, err := mysqlclient.Connect("192.168.122.1:3306", "root", "root@123", "")
+	cobra.CheckErr(err)
+	defer conn.Close()
+	result, err := conn.Execute("select * from library.user")
+	cobra.CheckErr(err)
+	defer result.Close()
+	for _, row := range result.Values {
+		vals := make([]interface{}, len(result.Fields))
+		for index, val := range row {
+			if val.Type == mysql.FieldValueTypeString {
+				vals[index] = string(val.AsString())
+			} else if val.Type == mysql.FieldValueTypeNull {
+				vals[index] = nil
+			} else {
+				vals[index] = val.Value()
+			}
+		}
+		fmt.Println("data :", vals)
+	}
+}
+
+func TestMysql4(t *testing.T) {
+	conn, err := mysqlclient.Connect("192.168.122.1:3306", "root", "root@123", "library")
+	table := "user"
+	where := "1=1"
+
 	cobra.CheckErr(err)
 	defer conn.Close()
 	var result mysql.Result
-	_ = conn.ExecuteSelectStreaming("select * from user ", &result, func(row []mysql.FieldValue) error {
-		for idx, val := range row {
-			field := result.Fields[idx]
-			fmt.Println(val, field)
+	defer result.Close()
+
+	err = conn.ExecuteSelectStreaming(fmt.Sprintf("SELECT * FROM `%s` WHERE %s ;", table, where), &result, func(row []mysql.FieldValue) error {
+		names := make([]string, len(result.Fields))
+		values := make([]string, len(result.Fields))
+		for index, val := range row {
+			if val.Type == mysql.FieldValueTypeString {
+				values[index] = fmt.Sprintf("'%s'", string(val.AsString()))
+			} else if val.Type == mysql.FieldValueTypeNull {
+				values[index] = "NULL"
+			} else {
+				values[index] = fmt.Sprintf("%v", val.Value())
+			}
+			names[index] = fmt.Sprintf("`%s`", string(result.Fields[index].Name))
 		}
+		fmt.Printf("INSERT INTO `%s` (%s) VALUES (%s);\n", table, strings.Join(names, ","), strings.Join(values, ","))
 		return nil
-	}, nil)
+	}, func(result *mysql.Result) error {
+		return nil
+	})
+	cobra.CheckErr(err)
 }
