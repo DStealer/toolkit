@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	mysqlclient "github.com/go-mysql-org/go-mysql/client"
+	"github.com/go-mysql-org/go-mysql/client"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
@@ -32,7 +32,7 @@ func init() {
 		Short: "mysql数据导出工具",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			conn, err := mysqlclient.Connect(mysqlAddr, mysqlUsername, mysqlPassword, mysqlDatabase)
+			conn, err := client.Connect(mysqlAddr, mysqlUsername, mysqlPassword, mysqlDatabase)
 			cobra.CheckErr(err)
 			err = conn.Ping()
 			if err != nil {
