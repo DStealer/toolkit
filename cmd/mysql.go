@@ -47,6 +47,11 @@ func init() {
 			}
 			fmt.Printf("#数据库:%s 表:%s 时间:%s\n", mysqlDatabase, table, time.Now().Format("2006-01-02 15:04:05"))
 			defer conn.Close()
+			//保证数据一致性
+			defer conn.Rollback()
+			err = conn.Begin()
+			cobra.CheckErr(err)
+
 			var result mysql.Result
 			defer result.Close()
 			var recordsNo int
