@@ -6,9 +6,9 @@ import (
 
 var (
 	mysqlAddr     = "127.0.0.1:3306"
-	mysqlUser     = "root"
+	mysqlUser     = ""
 	mysqlPassword = ""
-	mysqlDatabase = "test"
+	mysqlDatabase = ""
 
 	mysqlCmd = &cobra.Command{
 		Use:   "mysql subcommand [args]",
@@ -30,6 +30,6 @@ func init() {
 
 		},
 	}
-	dumpCmd.Flags().String("where", "", "")
+	dumpCmd.Flags().String("where", "", "查询条件")
 	mysqlCmd.AddCommand(dumpCmd)
 }

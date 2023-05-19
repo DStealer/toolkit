@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	lib    bool
-	loc    bool
+	jarLib bool
+	jarLoc bool
 	jarCmd = &cobra.Command{
 		Use:   "jar subcommand [args]",
 		Short: "jar包依赖分析工具",
@@ -36,10 +36,10 @@ func init() {
 			log.Info("**********结果分析***********")
 			for _, project := range projects {
 				fmt.Printf("--[%s] [%s] [%s]\n", project.Name, project.md5sum, project.PackageAt.Format("2006-01-02 15:04:05"))
-				if loc {
+				if jarLoc {
 					fmt.Printf("  %s\n", project.Path)
 				}
-				if lib {
+				if jarLib {
 					for _, dep := range project.Deps {
 						if dep.Err == nil {
 							fmt.Println("  ", dep.Name, "\t", dep.ArtifactId, "\t", dep.Version, "\t", "")
@@ -54,8 +54,8 @@ func init() {
 		},
 	}
 
-	depCmd.Flags().BoolVar(&lib, "lib", lib, "是否展示依赖")
-	depCmd.Flags().BoolVar(&loc, "loc", loc, "是否展示真实路径")
+	depCmd.Flags().BoolVar(&jarLib, "jar", jarLib, "是否展示依赖")
+	depCmd.Flags().BoolVar(&jarLoc, "loc", jarLoc, "是否展示真实路径")
 	jarCmd.AddCommand(depCmd)
 
 	versionCmd := &cobra.Command{
@@ -122,7 +122,7 @@ func init() {
 				}
 				if buffer.Len() > 0 {
 					fmt.Printf("--[%s] [%s] [%s]\n", project.Name, project.md5sum, project.PackageAt.Format("2006-01-02 15:04:05"))
-					if loc {
+					if jarLoc {
 						fmt.Printf("  %s\n", project.Path)
 					}
 					fmt.Print(buffer.String())
@@ -131,7 +131,7 @@ func init() {
 			log.Info("**********结束运行***********")
 		},
 	}
-	useCmd.Flags().BoolVar(&loc, "loc", loc, "是否展示真实路径")
+	useCmd.Flags().BoolVar(&jarLoc, "loc", jarLoc, "是否展示真实路径")
 	jarCmd.AddCommand(useCmd)
 
 	serviceCmd := &cobra.Command{
