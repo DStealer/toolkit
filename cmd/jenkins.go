@@ -6,10 +6,11 @@ import (
 	"github.com/docker/go-units"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/cache"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -104,35 +105,20 @@ func init() {
 				}
 			})
 			if proxy != "" {
-				mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-					defer request.Body.Close()
-					newRequest, err := http.NewRequest(request.Method, baseUrl+request.URL.String(), request.Body)
-					log.Infof("fetch data from :%s", newRequest.URL)
-					if err != nil {
-						http.Error(writer, err.Error(), http.StatusInternalServerError)
-						return
-					}
-					CopyHeader(request.Header, newRequest.Header, "Host")
-					response, err := jenkinsClient.Do(newRequest)
-					if err != nil {
-						log.Error("请求错误:", request.Method, request.URL, err)
-						http.Error(writer, err.Error(), http.StatusInternalServerError)
-						return
-					}
-					writer.WriteHeader(response.StatusCode)
-					defer response.Body.Close()
-					CopyHeader(response.Header, writer.Header())
-					bts, err := ioutil.ReadAll(response.Body)
-					if err != nil {
-						log.Error("请求错误:", request.Method, request.URL, err)
-						http.Error(writer, err.Error(), http.StatusInternalServerError)
-						return
-					}
-					_, err = writer.Write(bts)
-					if err != nil {
-						http.Error(writer, err.Error(), http.StatusInternalServerError)
-					}
-				})
+				upstream, err := url.Parse(baseUrl)
+				cobra.CheckErr(err)
+				reverseProxy := httputil.ReverseProxy{
+					Director: func(request *http.Request) {
+						request.URL.Scheme = upstream.Scheme
+						request.URL.Host = upstream.Host
+						path, err := url.JoinPath(upstream.Path, request.URL.Path)
+						if err == nil {
+							request.URL.Path = path
+						}
+					},
+				}
+
+				mux.HandleFunc("/", reverseProxy.ServeHTTP)
 			}
 			log.Infof("注册jenkins插件中心:%s", "/update-center.json")
 
