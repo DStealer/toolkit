@@ -59,10 +59,10 @@ spec:
     tier: devops
   type: NodePort
   ports:
-    - name: sshd
+    - name: ssh
       port: 22
       protocol: TCP
-      targetPort: sshd
+      targetPort: ssh
 
 ---
 apiVersion: v1
@@ -80,17 +80,17 @@ spec:
       imagePullPolicy: IfNotPresent
       ports:
         - containerPort: 22
-          name: sshd
+          name: ssh
           protocol: TCP
       startupProbe:
         tcpSocket:
-          port: sshd
+          port: ssh
       readinessProbe:
         tcpSocket:
-          port: sshd
+          port: ssh
       livenessProbe:
         tcpSocket:
-          port: sshd
+          port: ssh
       resources:
         requests:
           cpu: "0.1"
