@@ -49,13 +49,16 @@ func init() {
 			defer conn.Close()
 			//保证数据一致性
 			defer conn.Rollback()
-			err = conn.Begin()
-			cobra.CheckErr(err)
 
+			cobra.CheckErr(err)
+			_, err = conn.Execute("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;")
+			cobra.CheckErr(err)
+			_, err = conn.Execute("START TRANSACTION /*!40100 WITH CONSISTENT SNAPSHOT */;")
+			cobra.CheckErr(err)
 			var result mysql.Result
 			defer result.Close()
 			var recordsNo int
-			err = conn.ExecuteSelectStreaming(fmt.Sprintf("SELECT * FROM `%s` WHERE %s ;", table, where), &result, func(row []mysql.FieldValue) error {
+			err = conn.ExecuteSelectStreaming(fmt.Sprintf("SELECT /*!40001 SQL_NO_CACHE */ * FROM `%s` WHERE %s ;", table, where), &result, func(row []mysql.FieldValue) error {
 				names := make([]string, len(result.Fields))
 				values := make([]string, len(result.Fields))
 				for index, val := range row {
