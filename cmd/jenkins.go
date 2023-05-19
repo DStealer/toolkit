@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/docker/go-units"
-	"github.com/prometheus/common/log"
+	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/cache"

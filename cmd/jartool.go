@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/prometheus/common/log"
+	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	"io/fs"
 	"os"

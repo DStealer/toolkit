@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -16,7 +17,6 @@ import (
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 	"k8s.io/client-go/util/homedir"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -151,7 +151,7 @@ func init() {
 			localPort := cmd.Flag("local-port").Value.String()
 			fw, err := portforward.NewOnAddresses(dialer, []string{"127.0.0.1"}, []string{fmt.Sprintf("%v:22", localPort)}, stopChannel, readyChannel, os.Stdout, os.Stderr)
 			cobra.CheckErr(err)
-			log.Printf("ssh port listen on 127.0.0.1:%v \n", localPort)
+			log.Infof("ssh port listen on 127.0.0.1:%v \n", localPort)
 			err = fw.ForwardPorts()
 			cobra.CheckErr(err)
 		},

@@ -3,9 +3,9 @@ package cmd
 import (
 	"context"
 	"github.com/docker/go-units"
-	"github.com/prometheus/common/log"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	"math/rand"
 	"runtime"

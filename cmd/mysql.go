@@ -4,7 +4,7 @@ import (
 	"fmt"
 	mysqlclient "github.com/go-mysql-org/go-mysql/client"
 	"github.com/go-mysql-org/go-mysql/mysql"
-	"github.com/prometheus/common/log"
+	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	"strings"
 )

@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"github.com/bmatcuk/doublestar"
-	"github.com/prometheus/common/log"
 	"github.com/robfig/cron"
+	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	"os"
 	"time"
