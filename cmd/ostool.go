@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/docker/go-units"
+	"github.com/prometheus/common/log"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/spf13/cobra"
@@ -51,19 +52,19 @@ func init() {
 			}
 			durationMin, err := cmd.Flags().GetInt64("durationMin")
 			cobra.CheckErr(err)
-			fmt.Println("cpuPercent=", cpuPercent, "cpuTolerant=", cpuTolerant)
+			log.Info("cpuPercent=", cpuPercent, "cpuTolerant=", cpuTolerant)
 			keepCpu(cpuPercent, cpuTolerant, ctx)
-			fmt.Println("memPercent=", cpuPercent, "memTolerant=", cpuTolerant)
+			log.Info("memPercent=", cpuPercent, "memTolerant=", cpuTolerant)
 			keepMem(memPercent, memTolerant, ctx)
 
 			if durationMin >= 0 {
 				ticker := time.NewTicker(time.Duration(durationMin) * time.Minute)
 				select {
 				case <-ctx.Done():
-					fmt.Errorf("错误:%v\n", ctx.Err())
+					log.Errorf("错误:%v\n", ctx.Err())
 				case <-ticker.C:
 					cancelFunc()
-					fmt.Printf("正常退出\n")
+					log.Info("正常退出")
 				}
 			} else {
 				select {}
@@ -83,7 +84,7 @@ func init() {
 	osCmd.AddCommand(resourceCmd)
 }
 
-//保持cpu使用率
+// 保持cpu使用率
 func keepCpu(targetPercent, deltaPercent float64, ctx context.Context) error {
 	logicalCpus, err := cpu.Counts(true)
 	cobra.CheckErr(err)
@@ -142,7 +143,7 @@ func keepCpu(targetPercent, deltaPercent float64, ctx context.Context) error {
 	return nil
 }
 
-//保持mem使用率
+// 保持mem使用率
 func keepMem(targetPercent, deltaPercent float64, ctx context.Context) error {
 	go func() {
 		var sl []byte
@@ -155,18 +156,15 @@ func keepMem(targetPercent, deltaPercent float64, ctx context.Context) error {
 			case <-ticker.C:
 				memory, err := mem.VirtualMemory()
 				cobra.CheckErr(err)
-				fmt.Printf("Total: %v,Used:%v,Available:%v, Free:%v, UsedPercent:%f %%\n",
-					units.HumanSize(float64(memory.Total)), units.HumanSize(float64(memory.Used)),
-					units.HumanSize(float64(memory.Available)), units.HumanSize(float64(memory.Free)),
-					memory.UsedPercent)
+				log.Infof("Total: %v,Used:%v,Available:%v, Free:%v, UsedPercent:%f %%\n", units.HumanSize(float64(memory.Total)), units.HumanSize(float64(memory.Used)), units.HumanSize(float64(memory.Available)), units.HumanSize(float64(memory.Free)), memory.UsedPercent)
 				currentPercent := memory.UsedPercent / 100.0
 				if currentPercent > (targetPercent + deltaPercent) { //高于上限
 					sl = make([]byte, 0, 0)
-					fmt.Printf("reduce to: %v\n", units.HumanSize(0))
+					log.Infof("reduce to: %v\n", units.HumanSize(0))
 				} else if currentPercent < (targetPercent - deltaPercent) { //低于下限
 					memSize := (targetPercent - currentPercent - deltaPercent*rand.Float64()) * float64(memory.Total)
 					sl = make([]byte, 0, int(memSize))
-					fmt.Printf("adjust to: %v\n", units.HumanSize(memSize))
+					log.Infof("adjust to: %v\n", units.HumanSize(memSize))
 				}
 			}
 		}
