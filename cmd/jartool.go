@@ -5,9 +5,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/prometheus/common/log"
 	"github.com/spf13/cobra"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,10 +30,10 @@ func init() {
 		Short: "解析jar包依赖",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("**********解析开始***********")
+			log.Info("**********解析开始***********")
 			projects, err := parseEntry(args[0])
 			cobra.CheckErr(err)
-			log.Println("**********结果分析***********")
+			log.Info("**********结果分析***********")
 			for _, project := range projects {
 				fmt.Printf("--[%s] [%s] [%s]\n", project.Name, project.md5sum, project.PackageAt.Format("2006-01-02 15:04:05"))
 				if loc {
@@ -50,7 +50,7 @@ func init() {
 					}
 				}
 			}
-			log.Println("**********结束运行***********")
+			log.Info("**********结束运行***********")
 		},
 	}
 
@@ -63,10 +63,10 @@ func init() {
 		Short: "解析jar包版本",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("**********解析开始***********")
+			log.Info("**********解析开始***********")
 			projects, err := parseEntry(args[0])
 			cobra.CheckErr(err)
-			log.Println("**********结果分析***********")
+			log.Info("**********结果分析***********")
 			latestGpArVrMap := make(map[[2]string]string)
 			for _, project := range projects {
 				for _, dep := range project.Deps {
@@ -99,7 +99,7 @@ func init() {
 				}
 			}
 
-			log.Println("**********结束运行***********")
+			log.Info("**********结束运行***********")
 		},
 	}
 	jarCmd.AddCommand(versionCmd)
@@ -109,10 +109,10 @@ func init() {
 		Short: "判断jar包依赖使用情况",
 		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("**********解析开始***********")
+			log.Info("**********解析开始***********")
 			projects, err := parseEntry(args[0])
 			cobra.CheckErr(err)
-			log.Println("**********结果分析***********")
+			log.Info("**********结果分析***********")
 			for _, project := range projects {
 				buffer := bytes.Buffer{}
 				for _, dep := range project.Deps {
@@ -128,7 +128,7 @@ func init() {
 					fmt.Print(buffer.String())
 				}
 			}
-			log.Println("**********结束运行***********")
+			log.Info("**********结束运行***********")
 		},
 	}
 	useCmd.Flags().BoolVar(&loc, "loc", loc, "是否展示真实路径")
@@ -139,7 +139,7 @@ func init() {
 		Short: "生成jar包管理脚本",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("**********解析开始***********")
+			log.Info("**********解析开始***********")
 			_, err := os.Stat(args[0])
 			cobra.CheckErr(err)
 			path, err := filepath.Abs(args[0])
@@ -156,7 +156,7 @@ func init() {
 			_, err = os.Stat(confDirPath)
 			if os.IsNotExist(err) {
 				_ = os.Mkdir(confDirPath, os.ModePerm)
-				log.Println("创建配置文件目录:", confDirPath)
+				log.Info("创建配置文件目录:", confDirPath)
 			}
 
 			filename := filepath.Base(path)
@@ -171,8 +171,8 @@ func init() {
 				ProjectFileName string
 			}{filename})
 			cobra.CheckErr(err)
-			log.Println("生成命令文件:", shellFilePath)
-			log.Println("**********结束运行***********")
+			log.Info("生成命令文件:", shellFilePath)
+			log.Info("**********结束运行***********")
 		},
 	}
 	jarCmd.AddCommand(serviceCmd)
@@ -236,7 +236,7 @@ func parseProject(path string) (Project, error) {
 		Name: filepath.Base(path),
 		Path: path,
 	}
-	log.Printf("解析[%s]\n", project.Path)
+	log.Info("解析[%s]\n", project.Path)
 	md5Sum, err := Md5Sum(path)
 	if err != nil {
 		project.Err = err
@@ -253,7 +253,7 @@ func parseProject(path string) (Project, error) {
 		if strings.HasSuffix(ae.Name, "pom.properties") {
 			props, err := ConvertPropertiesToMap(ae)
 			if err != nil {
-				log.Println("pom.properties损坏,跳过读取!")
+				log.Warn("pom.properties损坏,跳过读取!")
 				project.Err = errors.New("pom.properties损坏")
 				continue
 			}
@@ -270,7 +270,7 @@ func parseProject(path string) (Project, error) {
 					Path: ae.Name,
 					Err:  errors.New("依赖损坏"),
 				})
-				log.Println("依赖损坏,跳过读取!", err)
+				log.Warn("依赖损坏,跳过读取!", err)
 				continue
 			}
 			pomFound := false
@@ -283,7 +283,7 @@ func parseProject(path string) (Project, error) {
 							Path: ae.Name,
 							Err:  errors.New("properties损坏,跳过读取!"),
 						})
-						log.Println("properties损坏,跳过读取!")
+						log.Warn("properties损坏,跳过读取!")
 						continue
 					}
 					project.Deps = append(project.Deps, Dep{
