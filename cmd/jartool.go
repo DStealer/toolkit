@@ -26,7 +26,7 @@ var (
 
 func init() {
 	depCmd := &cobra.Command{
-		Use:   "dep [path]",
+		Use:   "dep path",
 		Short: "解析jar包依赖",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -59,9 +59,9 @@ func init() {
 	jarCmd.AddCommand(depCmd)
 
 	versionCmd := &cobra.Command{
-		Use:  "version [path]",
+		Use:   "version path",
 		Short: "解析jar包版本",
-		Args: cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("**********解析开始***********")
 			projects, err := parseEntry(args[0])
@@ -95,8 +95,7 @@ func init() {
 
 				}
 				if buffer.Len() > 0 {
-					fmt.Printf("项目%s 编译时间:%s,当前升级推荐\n%s", project.Name,
-						project.PackageAt.Format("2006-01-02 15:04:05"), buffer.String())
+					fmt.Printf("项目%s 编译时间:%s,当前升级推荐\n%s", project.Name, project.PackageAt.Format("2006-01-02 15:04:05"), buffer.String())
 				}
 			}
 
@@ -106,9 +105,9 @@ func init() {
 	jarCmd.AddCommand(versionCmd)
 
 	useCmd := &cobra.Command{
-		Use:  "use [path] [keyword]",
+		Use:   "use path keyword",
 		Short: "判断jar包依赖使用情况",
-		Args: cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("**********解析开始***********")
 			projects, err := parseEntry(args[0])
@@ -136,9 +135,9 @@ func init() {
 	jarCmd.AddCommand(useCmd)
 
 	serviceCmd := &cobra.Command{
-		Use:  "shellgen [jar or war file path]",
+		Use:   "shellgen jarfile",
 		Short: "生成jar包管理脚本",
-		Args: cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("**********解析开始***********")
 			_, err := os.Stat(args[0])
@@ -146,14 +145,12 @@ func init() {
 			path, err := filepath.Abs(args[0])
 			cobra.CheckErr(err)
 			if !strings.HasSuffix(path, ".jar") && strings.HasSuffix(path, ".war") {
-				fmt.Println("文件不是java可运行文件 .jar or .war")
-				os.Exit(-1)
+				log.Fatalln("文件不是java可运行文件 .jar or .war")
 			}
 			shellFilePath := filepath.Join(filepath.Dir(path), "service.sh")
 			_, err = os.Stat(shellFilePath)
 			if os.IsExist(err) {
-				fmt.Println(shellFilePath, "已经存在")
-				os.Exit(-1)
+				log.Fatalln(shellFilePath, "已经存在")
 			}
 			confDirPath := filepath.Join(filepath.Dir(path), "config")
 			_, err = os.Stat(confDirPath)
@@ -220,7 +217,7 @@ func parseEntry(path string) ([]Project, error) {
 	return projects, nil
 }
 
-//parseArtifactIdAndVersion 通过名称尝试解析组件名称
+// parseArtifactIdAndVersion 通过名称尝试解析组件名称
 func parseArtifactIdAndVersion(name string) (string, string) {
 	name = strings.TrimSuffix(name, ".jar")
 	dotIndex := strings.Index(name, ".")

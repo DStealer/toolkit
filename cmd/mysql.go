@@ -23,12 +23,13 @@ func init() {
 	mysqlCmd.PersistentFlags().StringVar(&mysqlDatabase, "database", server, "数据库名称")
 
 	dumpCmd := &cobra.Command{
-		Use:   "dump [args]",
+		Use:   "dump [args] table",
 		Short: "mysql数据导出工具",
-		Args:  cobra.NoArgs,
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 
 		},
 	}
+	dumpCmd.Flags().String("where", "", "")
 	mysqlCmd.AddCommand(dumpCmd)
 }
