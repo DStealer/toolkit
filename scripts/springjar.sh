@@ -2,10 +2,17 @@
 set -ex
 mvn -e -B -U -pl=./ clean dependency:tree deploy
 
-rm -rf target/dependencies/ target/spring-boot-loader/ target/snapshot-dependencies/ target/application/ target/Dockerfile target/idfile.txt target/idfile.txt
+#清理临时文件
+rm -rf target/dependencies/ target/spring-boot-loader/ target/snapshot-dependencies/ target/application/ target/unpacked/ target/Dockerfile target/idfile.txt target/idfile.txt
+#拆解jar包
+unzip $(realpath $(find target/*-SNAPSHOT.jar)) -d target/unpacked
+mkdir -p target/snapshot-dependencies/BOOT-INF/lib target/dependencies/BOOT-INF/ target/spring-boot-loader/ target/application/
+find target/unpacked/BOOT-INF/lib/ -name "*-SNAPSHOT.jar" -exec mv {} target/snapshot-dependencies/BOOT-INF/lib/ \;
+mv target/unpacked/BOOT-INF/lib/ target/dependencies/BOOT-INF/
+mv target/unpacked/org/ target/spring-boot-loader
+mv target/unpacked/* target/application/
 
-java -Duser.dir=$(realpath target) -Djarmode=layertools -jar $(realpath $(find target/*-SNAPSHOT.jar)) extract
-
+#排除时间干扰
 find target/dependencies/ -exec touch -t 197001010000.00 {} \;
 find target/spring-boot-loader/ -exec touch -t 197001010000.00 {} \;
 find target/snapshot-dependencies/ -exec touch -t 197001010000.00 {} \;
@@ -27,6 +34,6 @@ buildah build --iidfile=target/idfile.txt target
 
 buildah push --rm --digestfile=target/digestfile $(cat target/idfile.txt) docker-daemon:$IMAGE_TAG
 
-cat $IMAGE_TAG@$(cat target/digestfile) > target/digestfile
+cat $IMAGE_TAG@$(cat target/digestfile) >target/digestfile
 
 buildah rmi $(cat target/idfile.txt)
