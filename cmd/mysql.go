@@ -6,7 +6,7 @@ import (
 
 var (
 	mysqlAddr     = "127.0.0.1:3306"
-	mysqlUser     = ""
+	mysqlUsername = ""
 	mysqlPassword = ""
 	mysqlDatabase = ""
 
@@ -18,7 +18,7 @@ var (
 
 func init() {
 	mysqlCmd.PersistentFlags().StringVar(&mysqlAddr, "addr", redisServer, "服务地址数据库地址,ip:port或unix socket")
-	mysqlCmd.PersistentFlags().StringVar(&mysqlUser, "user", redisServer, "用户名")
+	mysqlCmd.PersistentFlags().StringVar(&mysqlUsername, "username", redisServer, "用户名")
 	mysqlCmd.PersistentFlags().StringVar(&mysqlPassword, "password", redisServer, "密码")
 	mysqlCmd.PersistentFlags().StringVar(&mysqlDatabase, "database", redisServer, "数据库名称")
 
