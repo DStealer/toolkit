@@ -236,7 +236,7 @@ func parseProject(path string) (Project, error) {
 		Name: filepath.Base(path),
 		Path: path,
 	}
-	log.Info("解析[%s]\n", project.Path)
+	log.Infof("解析[%s]\n", project.Path)
 	md5Sum, err := Md5Sum(path)
 	if err != nil {
 		project.Err = err
