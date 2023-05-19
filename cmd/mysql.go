@@ -7,6 +7,7 @@ import (
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	"strings"
+	"time"
 )
 
 var (
@@ -44,10 +45,11 @@ func init() {
 			if where == "" {
 				where = "1=1"
 			}
+			fmt.Printf("#数据库:%s 表:%s 时间:%s\n", mysqlDatabase, table, time.Now().Format("2006-01-02 15:04:05"))
 			defer conn.Close()
 			var result mysql.Result
 			defer result.Close()
-
+			var recordsNo int
 			err = conn.ExecuteSelectStreaming(fmt.Sprintf("SELECT * FROM `%s` WHERE %s ;", table, where), &result, func(row []mysql.FieldValue) error {
 				names := make([]string, len(result.Fields))
 				values := make([]string, len(result.Fields))
@@ -62,10 +64,12 @@ func init() {
 					names[index] = fmt.Sprintf("`%s`", string(result.Fields[index].Name))
 				}
 				fmt.Printf("INSERT INTO `%s` (%s) VALUES (%s);\n", table, strings.Join(names, ","), strings.Join(values, ","))
+				recordsNo += 1
 				return nil
 			}, func(result *mysql.Result) error {
 				return nil
 			})
+			fmt.Printf("#总计数目:%d条\n", recordsNo)
 			cobra.CheckErr(err)
 		},
 	}
