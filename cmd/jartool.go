@@ -54,7 +54,7 @@ func init() {
 		},
 	}
 
-	depCmd.Flags().BoolVar(&jarLib, "jar", jarLib, "是否展示依赖")
+	depCmd.Flags().BoolVar(&jarLib, "lib", jarLib, "是否展示依赖")
 	depCmd.Flags().BoolVar(&jarLoc, "loc", jarLoc, "是否展示真实路径")
 	jarCmd.AddCommand(depCmd)
 
