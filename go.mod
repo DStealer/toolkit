@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/ZZMarquis/gm v1.3.2
+	github.com/abbot/go-http-auth v0.4.0
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/bmatcuk/doublestar v1.3.4
 	github.com/containerd/containerd v1.5.2
@@ -14,6 +15,7 @@ require (
 	github.com/prometheus/common v0.10.0
 	github.com/robfig/cron v1.2.0
 	github.com/shirou/gopsutil/v3 v3.23.1
+	github.com/siddontang/go-log v0.0.0-20180807004314-8d05993dda07
 	github.com/spf13/cobra v1.1.3
 	k8s.io/api v0.20.6
 	k8s.io/apimachinery v0.20.6
@@ -67,7 +69,6 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726 // indirect
-	github.com/siddontang/go-log v0.0.0-20180807004314-8d05993dda07 // indirect
 	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tklauser/go-sysconf v0.3.11 // indirect

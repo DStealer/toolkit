@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ZZMarquis/gm/sm4"
+	auth "github.com/abbot/go-http-auth"
 	"github.com/containerd/containerd"
 	mysqlclient "github.com/go-mysql-org/go-mysql/client"
 	_ "github.com/go-mysql-org/go-mysql/driver"
@@ -32,6 +33,8 @@ import (
 	"k8s.io/client-go/transport/spdy"
 	"math/rand"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -620,4 +623,36 @@ func TestMysql4(t *testing.T) {
 		return nil
 	})
 	cobra.CheckErr(err)
+}
+
+func Secret(user, realm string) string {
+	if user == "john" {
+		// password is "hello"
+		return "$1$dlPL2MqE$oQmn16q49SqdmhenQuNgs1"
+	}
+	return ""
+}
+
+func reverseProxy(upstream url.URL) func(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+	proxy := httputil.ReverseProxy{
+		Director: func(request *http.Request) {
+			request.URL.Scheme = upstream.Scheme
+			request.URL.Host = upstream.Host
+			request.Host = upstream.Host
+			log.Infof("access :%v", request.URL)
+		},
+	}
+	return func(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+		proxy.ServeHTTP(w, &r.Request)
+	}
+}
+
+func TestHttpAuth(t *testing.T) {
+	upstream, err := url.Parse("https://www.sina.com")
+	cobra.CheckErr(err)
+
+	authenticator := auth.NewBasicAuthenticator(upstream.Hostname(), Secret)
+	http.HandleFunc("/", authenticator.Wrap(reverseProxy(*upstream)))
+
+	http.ListenAndServe(":8080", nil)
 }
