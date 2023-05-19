@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/prometheus/common/log"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -14,7 +15,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -102,11 +102,11 @@ func init() {
 				err = wait.PollImmediateUntil(1*time.Second, func() (bool, error) {
 					newPod, err := clientSet.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 					if err != nil {
-						fmt.Fprintf(os.Stderr, "Error getting Pod :%q [%v]\n", newPod.Name, err)
+						log.Errorf("Error getting Pod :%q [%v]\n", newPod.Name, err)
 						return false, nil
 					}
 					if newPod == nil {
-						fmt.Fprintf(os.Stderr, "Pod :%q not found\n", newPod.Name)
+						log.Errorf("Pod :%q not found\n", newPod.Name)
 						return false, nil
 					}
 					if newPod.Status.Phase != v1.PodRunning {
@@ -140,7 +140,7 @@ func init() {
 			readyChannel := make(chan struct{})
 			fw, err := portforward.NewOnAddresses(dialer, []string{"127.0.0.1"}, []string{"22622:22"}, stopChannel, readyChannel, os.Stdout, os.Stderr)
 			cobra.CheckErr(err)
-			log.Printf("ssh port listen on 127.0.0.1:%v \n", 22622)
+			log.Infof("ssh port listen on 127.0.0.1:%v \n", 22622)
 			err = fw.ForwardPorts()
 			cobra.CheckErr(err)
 		},
