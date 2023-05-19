@@ -160,7 +160,7 @@ func keepMem(targetPercent, deltaPercent float64, ctx context.Context) error {
 				currentPercent := memory.UsedPercent / 100.0
 				if currentPercent > (targetPercent + deltaPercent) { //高于上限
 					sl = make([]byte, 0, 0)
-					log.Infof("reduce to: %v\n", units.HumanSize(0))
+					log.Infoln("reduce to: %v\n", units.HumanSize(0))
 				} else if currentPercent < (targetPercent - deltaPercent) { //低于下限
 					memSize := (targetPercent - currentPercent - deltaPercent*rand.Float64()) * float64(memory.Total)
 					sl = make([]byte, 0, int(memSize))
