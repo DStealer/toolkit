@@ -45,7 +45,7 @@ func init() {
 			if where == "" {
 				where = "1=1"
 			}
-			fmt.Printf("#数据库:%s 表:%s 时间:%s\n", mysqlDatabase, table, time.Now().Format("2006-01-02 15:04:05"))
+			fmt.Printf("#数据库:%s 表:%s 操作时间:%s\n", mysqlDatabase, table, time.Now().Format("2006-01-02 15:04:05"))
 			defer conn.Close()
 			//保证数据一致性
 			defer conn.Rollback()
