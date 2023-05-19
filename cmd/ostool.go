@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"github.com/docker/go-units"
 	"github.com/prometheus/common/log"
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -103,7 +102,7 @@ func keepCpu(targetPercent, deltaPercent float64, ctx context.Context) error {
 				percents, err := cpu.Percent(0, false)
 				cobra.CheckErr(err)
 				for _, percent := range percents {
-					fmt.Printf("cpu: %v %%\n", percent/100.0)
+					log.Infof("curren cpu use: %v %%\n", percent/100.0)
 				}
 				currentPercent := percents[0] / 100.0
 				currentMillis := float64(totalMillis) * currentPercent
@@ -160,7 +159,7 @@ func keepMem(targetPercent, deltaPercent float64, ctx context.Context) error {
 				currentPercent := memory.UsedPercent / 100.0
 				if currentPercent > (targetPercent + deltaPercent) { //高于上限
 					sl = make([]byte, 0, 0)
-					log.Info("reduce to: %v\n", units.HumanSize(0))
+					log.Infof("reduce to: %v\n", units.HumanSize(0))
 				} else if currentPercent < (targetPercent - deltaPercent) { //低于下限
 					memSize := (targetPercent - currentPercent - deltaPercent*rand.Float64()) * float64(memory.Total)
 					sl = make([]byte, 0, int(memSize))
