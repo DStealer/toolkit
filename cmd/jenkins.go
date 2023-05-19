@@ -111,10 +111,12 @@ func init() {
 					Director: func(request *http.Request) {
 						request.URL.Scheme = upstream.Scheme
 						request.URL.Host = upstream.Host
+						request.Host = upstream.Host
 						path, err := url.JoinPath(upstream.Path, request.URL.Path)
 						if err == nil {
 							request.URL.Path = path
 						}
+						log.Debugf("access :%s", request.URL)
 					},
 				}
 
