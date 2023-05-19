@@ -156,7 +156,7 @@ func TestGlob(t *testing.T) {
 func TestTruncate(t *testing.T) {
 	cmd, args, err := logCmd.Traverse([]string{"truncate",
 		"/home/dstealer/Data/Temprory/tmp/www/logs/**/app.log"})
-	dryRun = true
+	logDryRun = true
 	cobra.CheckErr(err)
 	cmd.Run(cmd, args)
 }
@@ -164,7 +164,7 @@ func TestTruncate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	cmd, args, err := logCmd.Traverse([]string{"delete",
 		"/home/dstealer/Data/Temprory/tmp/www/logs/**/**"})
-	dryRun = true
+	logDryRun = true
 	cobra.CheckErr(err)
 	cmd.Run(cmd, args)
 }

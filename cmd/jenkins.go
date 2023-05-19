@@ -19,7 +19,7 @@ var (
 		Use:   "jenkins subcommand [args]",
 		Short: "jenkins辅助命令",
 	}
-	client = http.Client{}
+	jenkinsClient = http.Client{}
 )
 
 func init() {
@@ -113,7 +113,7 @@ func init() {
 						return
 					}
 					CopyHeader(request.Header, newRequest.Header, "Host")
-					response, err := client.Do(newRequest)
+					response, err := jenkinsClient.Do(newRequest)
 					if err != nil {
 						log.Error("请求错误:", request.Method, request.URL, err)
 						http.Error(writer, err.Error(), http.StatusInternalServerError)

@@ -17,9 +17,10 @@ import (
 )
 
 var (
-	server   = "127.0.0.1:6379"
-	db       = 0
-	password = ""
+	redisServer   = "127.0.0.1:6379"
+	redisDb       = 0
+	redisPassword = ""
+
 	redisCmd = &cobra.Command{
 		Use:   "redis subcommand [args]",
 		Short: "redis运维管理工具",
@@ -27,9 +28,9 @@ var (
 )
 
 func init() {
-	redisCmd.PersistentFlags().StringVar(&server, "server", server, "服务地址,一个地址为主从模式,多个地址为集群模式,哨兵模式暂时不支持")
-	redisCmd.PersistentFlags().StringVar(&password, "password", password, "密码")
-	redisCmd.PersistentFlags().IntVar(&db, "db", db, "数据库编号,仅主从模式,哨兵模式支持")
+	redisCmd.PersistentFlags().StringVar(&redisServer, "server", redisServer, "服务地址,一个地址为主从模式,多个地址为集群模式,哨兵模式暂时不支持")
+	redisCmd.PersistentFlags().StringVar(&redisPassword, "password", redisPassword, "密码")
+	redisCmd.PersistentFlags().IntVar(&redisDb, "db", redisDb, "数据库编号,仅主从模式,哨兵模式支持")
 	redisCmd.AddCommand(&cobra.Command{
 		Use:   "keys [key]",
 		Short: "查看redis键的情况,支持模糊匹配",
@@ -253,15 +254,15 @@ func init() {
 }
 
 func newRedisClient() redis.UniversalClient {
-	if len(password) == 0 {
+	if len(redisPassword) == 0 {
 		psd, err := speakeasy.Ask("请输入密码:")
 		cobra.CheckErr(err)
-		password = psd
+		redisPassword = psd
 	}
 	client := redis.NewUniversalClient(&redis.UniversalOptions{
-		Addrs:        strings.Split(server, ","),
-		DB:           db,
-		Password:     password,
+		Addrs:        strings.Split(redisServer, ","),
+		DB:           redisDb,
+		Password:     redisPassword,
 		MaxRetries:   5,
 		PoolSize:     runtime.NumCPU(),
 		MaxRedirects: 10,

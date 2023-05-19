@@ -14,22 +14,22 @@ var (
 		Use:   "log subcommand [args]",
 		Short: "log 管理工具",
 	}
-	dryRun bool
+	logDryRun bool
 )
 
 func init() {
-	logCmd.PersistentFlags().BoolVar(&dryRun, "dryRun", dryRun, "测试运行")
+	logCmd.PersistentFlags().BoolVar(&logDryRun, "dryRun", logDryRun, "测试运行")
 	tuncCmd := &cobra.Command{
 		Use:   "truncate [path expression]",
 		Short: "截断符合条件的文件数据",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if dryRun {
+			if logDryRun {
 				log.Info("*********执行截断操作(测试)************")
 			} else {
 				log.Info("*********执行截断操作************")
 			}
-			truncateLog(args[0], dryRun)
+			truncateLog(args[0], logDryRun)
 			log.Info("**********结束运行***********")
 		},
 	}
@@ -40,7 +40,7 @@ func init() {
 		Short: "删除符合条件的文件数据",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if dryRun {
+			if logDryRun {
 				log.Info("*********执行删除操作(测试)************")
 			} else {
 				log.Info("*********执行删除操作************")
@@ -52,7 +52,7 @@ func init() {
 			if cronExp != "" {
 				c := cron.New()
 				err := c.AddFunc(cronExp, func() {
-					deleteLog(args[0], duration, dryRun)
+					deleteLog(args[0], duration, logDryRun)
 				})
 				cobra.CheckErr(err)
 				defer c.Stop()
@@ -65,10 +65,10 @@ func init() {
 				}
 				select {}
 			} else {
-				deleteLog(args[0], duration, dryRun)
+				deleteLog(args[0], duration, logDryRun)
 			}
 
-			deleteLog(args[0], duration, dryRun)
+			deleteLog(args[0], duration, logDryRun)
 			log.Info("**********结束运行***********")
 		},
 	}
