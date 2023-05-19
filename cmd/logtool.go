@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"github.com/bmatcuk/doublestar"
+	"github.com/prometheus/common/log"
 	"github.com/robfig/cron"
 	"github.com/spf13/cobra"
-	"log"
 	"os"
 	"time"
 )
@@ -20,30 +20,30 @@ var (
 func init() {
 	logCmd.PersistentFlags().BoolVar(&dryRun, "dryRun", dryRun, "测试运行")
 	tuncCmd := &cobra.Command{
-		Use:  "truncate [path expression]",
+		Use:   "truncate [path expression]",
 		Short: "截断符合条件的文件数据",
-		Args: cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			if dryRun {
-				log.Println("*********执行截断操作(测试)************")
+				log.Info("*********执行截断操作(测试)************")
 			} else {
-				log.Println("*********执行截断操作************")
+				log.Info("*********执行截断操作************")
 			}
 			truncateLog(args[0], dryRun)
-			log.Println("**********结束运行***********")
+			log.Info("**********结束运行***********")
 		},
 	}
 	logCmd.AddCommand(tuncCmd)
 
 	delCmd := &cobra.Command{
-		Use:  "delete [path expression]",
+		Use:   "delete [path expression]",
 		Short: "删除符合条件的文件数据",
-		Args: cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			if dryRun {
-				log.Println("*********执行删除操作(测试)************")
+				log.Info("*********执行删除操作(测试)************")
 			} else {
-				log.Println("*********执行删除操作************")
+				log.Info("*********执行删除操作************")
 			}
 			duration, err := cmd.Flags().GetDuration("change")
 			cobra.CheckErr(err)
@@ -59,9 +59,9 @@ func init() {
 				c.Start()
 				entries := c.Entries()
 				if len(entries) > 0 {
-					log.Println("定时任务已启动,首次执行时间是:", entries[0].Next.Format("2006-01-02 15:04:05"))
+					log.Info("定时任务已启动,首次执行时间是:", entries[0].Next.Format("2006-01-02 15:04:05"))
 				} else {
-					log.Println("定时任务已启动")
+					log.Info("定时任务已启动")
 				}
 				select {}
 			} else {
@@ -69,7 +69,7 @@ func init() {
 			}
 
 			deleteLog(args[0], duration, dryRun)
-			log.Println("**********结束运行***********")
+			log.Info("**********结束运行***********")
 		},
 	}
 	delCmd.Flags().Duration("change", time.Duration(0), "change duration bigger than")
@@ -78,55 +78,54 @@ func init() {
 	cron.New()
 }
 
-//删除日志文件
+// 删除日志文件
 func deleteLog(pathExp string, duration time.Duration, dryRun bool) {
 	paths, err := doublestar.Glob(pathExp)
 	cobra.CheckErr(err)
 	for _, path := range paths {
 		stat, err := os.Stat(path)
 		if err != nil {
-			log.Printf("[%s]处理错误:%s,忽略\n", path, err.Error())
+			log.Infof("[%s]处理错误:%s,忽略\n", path, err.Error())
 			continue
 		}
 		if stat.IsDir() {
-			log.Printf("忽略文件夹[%s]\n", path)
+			log.Infof("忽略文件夹[%s]\n", path)
 			continue
 		}
 		if duration != time.Duration(0) && stat.ModTime().Add(duration).After(time.Now()) {
-			log.Printf("文件:[%s]变更时间:%s,忽略", path,
-				stat.ModTime().Format("2006-01-02 15:04:05"))
+			log.Infof("文件:[%s]变更时间:%s,忽略", path, stat.ModTime().Format("2006-01-02 15:04:05"))
 			continue
 		}
-		log.Printf("删除文件:[%s] %v\n", path, stat.ModTime().Format("2006-01-02 15:04:05"))
+		log.Infof("删除文件:[%s] %v\n", path, stat.ModTime().Format("2006-01-02 15:04:05"))
 		if !dryRun {
 			err := os.Remove(path)
 			if err != nil {
-				log.Printf("删除文件:[%s]错误,%s\n", path, err.Error())
+				log.Warnf("删除文件:[%s]错误,%s\n", path, err.Error())
 			}
 		}
 	}
 }
 
-//截断日志文件
+// 截断日志文件
 func truncateLog(pathExp string, dryRun bool) {
 	paths, err := doublestar.Glob(pathExp)
 	cobra.CheckErr(err)
 	for _, path := range paths {
 		stat, err := os.Stat(path)
 		if err != nil {
-			log.Printf("[%s]处理错误:%s,忽略执行\n", path, err.Error())
+			log.Infof("[%s]处理错误:%s,忽略执行\n", path, err.Error())
 			continue
 		}
 		if stat.IsDir() {
-			log.Printf("忽略文件夹[%s]\n", path)
+			log.Warnf("忽略文件夹[%s]\n", path)
 			continue
 		}
-		log.Printf("截断文件:[%s]\n", path)
+		log.Infof("截断文件:[%s]\n", path)
 		if !dryRun {
 			func(path string) {
 				err := os.Truncate(path, 0)
 				if err != nil {
-					log.Printf("截断文件:[%s]错误,%s\n", path, err.Error())
+					log.Warnf("截断文件:[%s]错误,%s\n", path, err.Error())
 				}
 			}(path)
 		}
