@@ -2,6 +2,8 @@
 set -ex
 mvn -e -B -U -pl=./ clean dependency:tree deploy
 
+# 低版本springboot不支持
+# java -Duser.dir=$(realpath target) -Djarmode=layertools -jar $(realpath $(find target/*-SNAPSHOT.jar)) extract
 #清理临时文件
 rm -rf target/dependencies/ target/spring-boot-loader/ target/snapshot-dependencies/ target/application/ target/unpacked/ target/Dockerfile target/idfile.txt target/idfile.txt
 #拆解jar包
