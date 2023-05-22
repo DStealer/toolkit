@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -122,4 +123,20 @@ out:
 		copy(vv2, vv)
 		to[k] = vv2
 	}
+}
+
+// 获取本地ip地址
+func GetLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "127.0.0.1"
+	}
+	for _, addr := range addrs {
+		if ip, ok := addr.(*net.IPNet); ok && !ip.IP.IsLoopback() {
+			if ip.IP.To4() != nil {
+				return ip.IP.String()
+			}
+		}
+	}
+	return ""
 }

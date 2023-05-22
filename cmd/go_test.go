@@ -33,7 +33,6 @@ import (
 	"k8s.io/client-go/transport/spdy"
 	"math/rand"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"os/signal"
@@ -633,26 +632,15 @@ func Secret(user, realm string) string {
 	return ""
 }
 
-func reverseProxy(upstream url.URL) func(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
-	proxy := httputil.ReverseProxy{
-		Director: func(request *http.Request) {
-			request.URL.Scheme = upstream.Scheme
-			request.URL.Host = upstream.Host
-			request.Host = upstream.Host
-			log.Infof("access :%v", request.URL)
-		},
-	}
-	return func(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
-		proxy.ServeHTTP(w, &r.Request)
-	}
-}
-
 func TestHttpAuth(t *testing.T) {
-	upstream, err := url.Parse("https://www.sina.com")
+	provider := auth.HtpasswdFileProvider("/data/Temprory/htpasswd.cfg")
+
+	upstream, err := url.ParseRequestURI("https://www.sina.com")
 	cobra.CheckErr(err)
 
-	authenticator := auth.NewBasicAuthenticator(upstream.Hostname(), Secret)
+	authenticator := auth.NewBasicAuthenticator(upstream.Hostname(), provider)
 	http.HandleFunc("/", authenticator.Wrap(reverseProxy(*upstream)))
 
-	http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe("127.0.0.1:8080", nil)
+	cobra.CheckErr(err)
 }

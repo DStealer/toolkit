@@ -7,7 +7,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:     "tk",
 	Short:   "运维工具箱",
-	Version: "v0.0.3",
+	Version: "v0.0.4",
 }
 
 func Execute() error {
@@ -23,4 +23,5 @@ func init() {
 	rootCmd.AddCommand(jenkinsCmd)
 	rootCmd.AddCommand(k8sCmd)
 	rootCmd.AddCommand(mysqlCmd)
+	rootCmd.AddCommand(httpCmd)
 }
