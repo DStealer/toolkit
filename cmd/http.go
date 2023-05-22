@@ -1,10 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	auth "github.com/abbot/go-http-auth"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -20,21 +20,25 @@ var (
 func init() {
 	authProxyCmd := &cobra.Command{
 		Use:   "auth htpasswdfile",
-		Short: "http basic auth",
-		Args:  cobra.ExactArgs(2),
+		Short: "http basic auth, 仅支持htpasswd命令bcrypt encryption方式生成的文件",
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			provider := auth.HtpasswdFileProvider(args[0])
-			upstream, err := url.ParseRequestURI(args[1])
+			upstreamStr, err := cmd.Flags().GetString("upstreamAddr")
+			cobra.CheckErr(err)
+			upstream, err := url.ParseRequestURI(upstreamStr)
 			cobra.CheckErr(err)
 			authenticator := auth.NewBasicAuthenticator(upstream.Hostname(), provider)
 			http.HandleFunc("/", authenticator.Wrap(reverseProxy(*upstream)))
-			err = http.ListenAndServe("127.0.0.1:8080", nil)
+			localAddr, err := cmd.Flags().GetString("localAddr")
+			cobra.CheckErr(err)
+			log.Infof("绑定本地:%s", localAddr)
+			err = http.ListenAndServe(localAddr, nil)
 			cobra.CheckErr(err)
 		},
 	}
-	authProxyCmd.Flags().Int32("local-port", 8080, "本地绑定端口")
-	authProxyCmd.Flags().IP("local-ip", net.ParseIP(GetLocalIP()), "本地绑定端口")
-	authProxyCmd.Flags().String("upstream", "http://127.0.0.1:8080", "上游代理地址")
+	authProxyCmd.Flags().String("localAddr", fmt.Sprintf("%s:%d", GetLocalIP(), 8080), "本地绑定ip和端口")
+	authProxyCmd.Flags().String("upstreamAddr", "http://127.0.0.1:8080", "上游代理地址")
 
 	httpCmd.AddCommand(authProxyCmd)
 }
