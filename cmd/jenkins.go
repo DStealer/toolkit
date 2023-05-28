@@ -3,16 +3,13 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"github.com/docker/go-units"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/util/cache"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
-	"time"
 )
 
 var (
@@ -50,21 +47,7 @@ func init() {
 			cobra.CheckErr(err)
 
 			mux := http.NewServeMux()
-			expiringCache := cache.NewExpiring()
 			mux.HandleFunc("/update-center.json", func(writer http.ResponseWriter, request *http.Request) {
-				value, ok := expiringCache.Get("/update-center.json")
-				if ok {
-					data, ok := value.([]byte)
-					if ok {
-						writer.WriteHeader(http.StatusOK)
-						writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-						_, _ = writer.Write(data)
-						log.Infof("fetch data from cache size:%s", units.HumanSize(float64(len(data))))
-						return
-					} else {
-						expiringCache.Delete("/update-center.json")
-					}
-				}
 				requestUrl := baseUrl + "/updates/update-center.json"
 				log.Infof("fetch data from :%s", requestUrl)
 				response, err := http.Get(requestUrl)
@@ -97,7 +80,6 @@ func init() {
 				writer.WriteHeader(response.StatusCode)
 				CopyHeader(response.Header, writer.Header())
 				data := []byte(body)
-				expiringCache.Set("/update-center.json", data, 24*time.Hour)
 				_, err = writer.Write(data)
 				if err != nil {
 					http.Error(writer, err.Error(), http.StatusInternalServerError)
