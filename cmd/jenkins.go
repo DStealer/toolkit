@@ -48,14 +48,28 @@ func init() {
 
 			mux := http.NewServeMux()
 			mux.HandleFunc("/update-center.json", func(writer http.ResponseWriter, request *http.Request) {
-				requestUrl := baseUrl + "/updates/update-center.json"
-				log.Infof("fetch data from :%s", requestUrl)
-				response, err := http.Get(requestUrl)
-				if err != nil {
-					log.Error("客户请求错误:", err)
-					http.Error(writer, err.Error(), http.StatusInternalServerError)
-					return
+				version := request.URL.Query().Get("version")
+				var response *http.Response
+				if version != "" {
+					requestUrl := baseUrl + "/updates" + fmt.Sprintf("/dynamic-stable-%s", version) + request.RequestURI
+					log.Infof("fetch data from :%s", requestUrl)
+					response, err = http.Get(requestUrl)
+					if err != nil {
+						log.Error("客户请求错误:", err)
+						http.Error(writer, err.Error(), http.StatusInternalServerError)
+						return
+					}
+				} else {
+					requestUrl := baseUrl + "/updates" + request.RequestURI
+					log.Infof("fetch data from :%s", requestUrl)
+					response, err = http.Get(requestUrl)
+					if err != nil {
+						log.Error("客户请求错误:", err)
+						http.Error(writer, err.Error(), http.StatusInternalServerError)
+						return
+					}
 				}
+
 				defer response.Body.Close()
 				buf := new(bytes.Buffer)
 				_, err = buf.ReadFrom(response.Body)
@@ -104,7 +118,6 @@ func init() {
 
 				mux.HandleFunc("/", reverseProxy.ServeHTTP)
 			}
-			log.Infof("注册jenkins插件中心:%s", "/update-center.json")
 
 			addr := fmt.Sprintf("%s:%d", ip, port)
 			log.Infof("服务器启动监听:%s", addr)
