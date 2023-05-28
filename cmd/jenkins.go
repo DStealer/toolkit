@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -51,7 +52,13 @@ func init() {
 				version := request.URL.Query().Get("version")
 				var response *http.Response
 				if version != "" {
-					requestUrl := baseUrl + "/updates" + fmt.Sprintf("/dynamic-stable-%s", version) + request.RequestURI
+					var requestUrl string
+					if matched, err := regexp.MatchString("\\d+\\.\\d+\\.\\d+", version); err == nil && matched {
+						requestUrl = baseUrl + fmt.Sprintf("/updates/dynamic-stable-%s/update-center.json", version)
+					} else {
+						versionNo := strings.Split(version, ".")
+						requestUrl = baseUrl + fmt.Sprintf("/updates/dynamic-%s.%s/update-center.json", versionNo[0], versionNo[1])
+					}
 					log.Infof("fetch data from :%s", requestUrl)
 					response, err = http.Get(requestUrl)
 					if err != nil {
