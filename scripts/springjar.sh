@@ -5,7 +5,7 @@ mvn -e -B -U -pl=./ clean dependency:tree deploy
 # 低版本springboot不支持
 # java -Duser.dir=$(realpath target) -Djarmode=layertools -jar $(realpath $(find target/*-SNAPSHOT.jar)) extract
 #清理临时文件
-rm -rf target/dependencies/ target/spring-boot-loader/ target/snapshot-dependencies/ target/application/ target/unpacked/ target/Dockerfile target/idfile.txt target/idfile.txt
+rm -rf target/dependencies/ target/spring-boot-loader/ target/snapshot-dependencies/ target/application/ target/unpacked/ target/Dockerfile target/digestfile.txt target/idfile.txt
 #拆解jar包
 unzip $(realpath $(find target/*-SNAPSHOT.jar)) -d target/unpacked
 mkdir -p target/snapshot-dependencies/BOOT-INF/lib target/dependencies/BOOT-INF/ target/spring-boot-loader/ target/application/
@@ -34,8 +34,8 @@ IMAGE_TAG=repo.dstealer.com:18080/library/$(mvn help:evaluate -Dexpression=proje
 
 buildah build --iidfile=target/idfile.txt target
 
-buildah push --rm --digestfile=target/digestfile $(cat target/idfile.txt) docker-daemon:$IMAGE_TAG
+buildah push --rm --digestfile=target/digestfile.txt $(cat target/idfile.txt) docker-daemon:$IMAGE_TAG
 
-cat $IMAGE_TAG@$(cat target/digestfile) >target/digestfile
+cat $IMAGE_TAG@$(cat target/digestfile.txt) >target/digestfile.txt
 
 buildah rmi $(cat target/idfile.txt)
