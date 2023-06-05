@@ -35,7 +35,7 @@ func init() {
 			cobra.CheckErr(err)
 			log.Info("**********结果分析***********")
 			for _, project := range projects {
-				fmt.Printf("--[%s] [%s] [%s]\n", project.Name, project.md5sum, project.PackageAt.Format("2006-01-02 15:04:05"))
+				fmt.Printf("--[%s] [%s] [%s]\n", project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"))
 				if jarLoc {
 					fmt.Printf("  %s\n", project.Path)
 				}
@@ -95,7 +95,7 @@ func init() {
 
 				}
 				if buffer.Len() > 0 {
-					fmt.Printf("项目%s 编译时间:%s,当前升级推荐\n%s", project.Name, project.PackageAt.Format("2006-01-02 15:04:05"), buffer.String())
+					fmt.Printf("项目%s 编译时间:%s,当前升级推荐\n%s", project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), buffer.String())
 				}
 			}
 
@@ -121,7 +121,7 @@ func init() {
 					}
 				}
 				if buffer.Len() > 0 {
-					fmt.Printf("--[%s] [%s] [%s]\n", project.Name, project.md5sum, project.PackageAt.Format("2006-01-02 15:04:05"))
+					fmt.Printf("--[%s] [%s] [%s]\n", project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"))
 					if jarLoc {
 						fmt.Printf("  %s\n", project.Path)
 					}
@@ -249,9 +249,9 @@ func parseProject(path string) (Project, error) {
 		return project, nil
 	}
 	defer archive.Close()
-	for _, ae := range archive.File {
-		if strings.HasSuffix(ae.Name, "pom.properties") {
-			props, err := ConvertPropertiesToMap(ae)
+	for _, file := range archive.File {
+		if strings.HasSuffix(file.Name, "pom.properties") {
+			props, err := ConvertPropertiesToMap(file)
 			if err != nil {
 				log.Warn("pom.properties损坏,跳过读取!")
 				project.Err = errors.New("pom.properties损坏")
@@ -260,14 +260,14 @@ func parseProject(path string) (Project, error) {
 			project.GroupId = props["groupId"]
 			project.ArtifactId = props["artifactId"]
 			project.Version = props["version"]
-		} else if strings.HasSuffix(ae.Name, "MANIFEST.MF") {
-			project.PackageAt = ae.Modified
-		} else if strings.HasSuffix(ae.Name, ".jar") {
-			jarArchive, err := ZipFileToReader(ae)
+		} else if strings.HasSuffix(file.Name, "MANIFEST.MF") {
+			project.BuildTime = file.Modified
+		} else if strings.HasSuffix(file.Name, ".jar") {
+			jarArchive, err := ZipFileToReader(file)
 			if err != nil {
 				project.Deps = append(project.Deps, Dep{
-					Name: filepath.Base(ae.Name),
-					Path: ae.Name,
+					Name: filepath.Base(file.Name),
+					Path: file.Name,
 					Err:  errors.New("依赖损坏"),
 				})
 				log.Warn("依赖损坏,跳过读取!", err)
@@ -279,16 +279,16 @@ func parseProject(path string) (Project, error) {
 					props, err := ConvertPropertiesToMap(jfe)
 					if err != nil {
 						project.Deps = append(project.Deps, Dep{
-							Name: filepath.Base(ae.Name),
-							Path: ae.Name,
+							Name: filepath.Base(file.Name),
+							Path: file.Name,
 							Err:  errors.New("properties损坏,跳过读取!"),
 						})
 						log.Warn("properties损坏,跳过读取!")
 						continue
 					}
 					project.Deps = append(project.Deps, Dep{
-						Name:       filepath.Base(ae.Name),
-						Path:       ae.Name,
+						Name:       filepath.Base(file.Name),
+						Path:       file.Name,
 						GroupId:    props["groupId"],
 						ArtifactId: props["artifactId"],
 						Version:    props["version"],
@@ -299,8 +299,8 @@ func parseProject(path string) (Project, error) {
 			}
 			if !pomFound {
 				project.Deps = append(project.Deps, Dep{
-					Name: filepath.Base(ae.Name),
-					Path: ae.Name,
+					Name: filepath.Base(file.Name),
+					Path: file.Name,
 					Err:  errors.New("非Maven编译项目"),
 				})
 			}
@@ -324,7 +324,7 @@ type Project struct {
 	GroupId    string
 	ArtifactId string
 	Version    string
-	PackageAt  time.Time
+	BuildTime  time.Time
 	md5sum     string
 	Deps       []Dep
 	Err        error
