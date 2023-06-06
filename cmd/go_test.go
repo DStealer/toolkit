@@ -121,27 +121,6 @@ func TestTime(t *testing.T) {
 	fmt.Println(parse)
 }
 
-func TestLibDep(t *testing.T) {
-	cmd, args, err := jarCmd.Traverse([]string{"dep",
-		"Workspaces/JavaProjects/user/api-web/target/"})
-	cobra.CheckErr(err)
-	cmd.Run(cmd, args)
-}
-
-func TestLibVersion(t *testing.T) {
-	cmd, args, err := jarCmd.Traverse([]string{"version",
-		"Workspaces/JavaProjects/user/api-web/target"})
-	cobra.CheckErr(err)
-	cmd.Run(cmd, args)
-}
-
-func TestLibUse(t *testing.T) {
-	cmd, args, err := jarCmd.Traverse([]string{"use",
-		"Workspaces/JavaProjects/user/api-web/target", "coderd"})
-	cobra.CheckErr(err)
-	cmd.Run(cmd, args)
-}
-
 func TestVersion(t *testing.T) {
 	v1 := "1.1.090-SNAPSHOT"
 	v2 := "1.1.019-SNAPSHOT"
@@ -155,22 +134,6 @@ func TestGlob(t *testing.T) {
 		stat.IsDir()
 	}
 }
-func TestTruncate(t *testing.T) {
-	cmd, args, err := logCmd.Traverse([]string{"truncate",
-		"/home/dstealer/Data/Temprory/tmp/www/logs/**/app.log"})
-	logDryRun = true
-	cobra.CheckErr(err)
-	cmd.Run(cmd, args)
-}
-
-func TestDelete(t *testing.T) {
-	cmd, args, err := logCmd.Traverse([]string{"delete",
-		"/home/dstealer/Data/Temprory/tmp/www/logs/**/**"})
-	logDryRun = true
-	cobra.CheckErr(err)
-	cmd.Run(cmd, args)
-}
-
 func TestDuration(t *testing.T) {
 	c := cron.New()
 	err := c.AddFunc("* 0 * * * *", func() {
@@ -194,19 +157,6 @@ func TestTemplate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-}
-
-func TestServiceCmd(t *testing.T) {
-	cmd, args, err := jarCmd.Traverse([]string{"shellgen",
-		"Workspaces/JavaProjects/api-web.jar"})
-	cobra.CheckErr(err)
-	cmd.Run(cmd, args)
-}
-
-func TestJenkinsCmd(t *testing.T) {
-	cmd, args, err := jenkinsCmd.Traverse([]string{"uc"})
-	cobra.CheckErr(err)
-	cmd.Run(cmd, args)
 }
 
 func TestK8s(t *testing.T) {
@@ -406,58 +356,6 @@ func TestRegistry(t *testing.T) {
 		}
 	}
 }
-func TestHttp(t *testing.T) {
-	http.HandleFunc("/k8s", func(writer http.ResponseWriter, request *http.Request) {
-		resp, err := http.Get("http://127.0.0.1:42455/")
-		if err != nil {
-			log.Error("客户请求错误:", err)
-			writer.WriteHeader(http.StatusBadRequest)
-			writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			_, _ = writer.Write([]byte("客户请求错误" + err.Error()))
-			return
-		}
-		defer resp.Body.Close()
-		buf := new(bytes.Buffer)
-		_, err = buf.ReadFrom(resp.Body)
-		if err != nil {
-			log.Error("服务器转发错误:", err)
-			writer.WriteHeader(http.StatusBadGateway)
-			writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			_, _ = writer.Write([]byte("服务器转发错误" + err.Error()))
-			return
-		}
-		if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
-			log.Error("服务器响应错误:", resp.Status)
-			_ = resp.Header.Write(writer)
-			_, _ = writer.Write(buf.Bytes())
-			return
-		}
-		body := buf.String()
-
-		body = strings.ReplaceAll(body, "a", "b")
-
-		err = resp.Header.WriteSubset(writer, map[string]bool{
-			"Content-Length":    true,
-			"Transfer-Encoding": true,
-			"Trailer":           true,
-		})
-		if err != nil {
-			log.Error("写入header错误:", err)
-			return
-		}
-		_, err = writer.Write([]byte(body))
-		if err != nil {
-			log.Error("写入body错误:", err)
-			return
-		}
-	})
-
-	log.Info("服务器启动监听")
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		return
-	}
-}
 
 func TestMem(t *testing.T) {
 	targetPercent := 0.6
@@ -538,16 +436,6 @@ func TestCPU(t *testing.T) {
 	select {}
 }
 
-func TestResourceCmd(t *testing.T) {
-	cmd, args, err := osCmd.Traverse([]string{"resource", "cpuPercent=0.8"})
-	cobra.CheckErr(err)
-	cmd.Run(cmd, args)
-}
-func TestKeepCpu(t *testing.T) {
-	keepCpu(0.8, 0.1, context.Background())
-	select {}
-}
-
 func TestMysql(t *testing.T) {
 	dsn := "root@127.0.0.1:3306?test"
 	db, _ := sql.Open("mysql", dsn)
@@ -623,7 +511,6 @@ func TestMysql4(t *testing.T) {
 	})
 	cobra.CheckErr(err)
 }
-
 func Secret(user, realm string) string {
 	if user == "john" {
 		// password is "hello"
