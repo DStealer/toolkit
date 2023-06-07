@@ -179,7 +179,7 @@ func init() {
 	jarCmd.AddCommand(serviceCmd)
 
 	verLockCmd := &cobra.Command{
-		Use:   "verlock path version.csv",
+		Use:   "verlock path file.csv",
 		Short: "记录指定目录或指定jar包springboot项目版本信息",
 		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
