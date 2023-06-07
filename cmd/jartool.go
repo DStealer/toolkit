@@ -3,6 +3,7 @@ package cmd
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"github.com/siddontang/go-log/log"
@@ -176,6 +177,31 @@ func init() {
 		},
 	}
 	jarCmd.AddCommand(serviceCmd)
+
+	verLockCmd := &cobra.Command{
+		Use:   "verlock path version.csv",
+		Short: "记录指定目录或指定jar包springboot项目版本信息",
+		Args:  cobra.ExactArgs(2),
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Info("**********创建文件*******")
+			file, err := os.OpenFile(args[1], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+			cobra.CheckErr(err)
+			log.Info("**********解析开始***********")
+			projects, err := parseEntry(args[0])
+			cobra.CheckErr(err)
+			log.Info("**********结果分析***********")
+			defer file.Close()
+			csvWriter := csv.NewWriter(file)
+			csvWriter.Write([]string{"项目名称", "项目路径", "构建时间", "构建时间", "Md5值", "构建分支"})
+			for _, project := range projects {
+				csvWriter.Write([]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum, ""})
+			}
+			csvWriter.Flush()
+			log.Infof("统计数据:{}条", len(projects))
+			log.Info("**********结束运行***********")
+		},
+	}
+	jarCmd.AddCommand(verLockCmd)
 }
 
 func parseEntry(path string) ([]Project, error) {
