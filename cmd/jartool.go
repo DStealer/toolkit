@@ -192,9 +192,9 @@ func init() {
 			log.Info("**********结果分析***********")
 			defer file.Close()
 			csvWriter := csv.NewWriter(file)
-			csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值", "构建分支"})
+			csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值"})
 			for _, project := range projects {
-				csvWriter.Write([]string{project.ArtifactId, project.Name, project.BuildTime.Format("`2006-01-02 15:04:05"), project.md5sum, ""})
+				csvWriter.Write([]string{project.ArtifactId, project.Name, project.BuildTime.Format("`2006-01-02 15:04:05"), project.md5sum})
 			}
 			csvWriter.Flush()
 			if absPath, err := filepath.Abs(args[1]); err == nil {
