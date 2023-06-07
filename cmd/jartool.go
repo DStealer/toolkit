@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -190,6 +191,9 @@ func init() {
 			projects, err := parseEntry(args[0])
 			cobra.CheckErr(err)
 			log.Info("**********结果分析***********")
+			sort.Slice(projects, func(i, j int) bool {
+				return strings.Compare(projects[i].ArtifactId, projects[j].ArtifactId) < 0
+			})
 			defer file.Close()
 			csvWriter := csv.NewWriter(file)
 			csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值"})
