@@ -199,7 +199,13 @@ func init() {
 			defer file.Close()
 			csvWriter := csv.NewWriter(file)
 			csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值"})
+			entries := make(map[string]struct{}, 16)
 			for _, project := range projects {
+				if _, ok := entries[project.ArtifactId]; ok {
+					cobra.CheckErr(fmt.Sprintf("项目title:[%s] [%s]重复", project.ArtifactId, project.Name))
+				}
+				entries[project.ArtifactId] = struct{}{}
+
 				csvWriter.Write([]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum})
 			}
 			csvWriter.Flush()
