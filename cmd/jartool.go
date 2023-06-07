@@ -9,9 +9,11 @@ import (
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	"io/fs"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -198,7 +200,7 @@ func init() {
 			csvWriter := csv.NewWriter(file)
 			csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值"})
 			for _, project := range projects {
-				csvWriter.Write([]string{project.ArtifactId, project.Name, project.BuildTime.Format("`2006-01-02 15:04:05"), project.md5sum})
+				csvWriter.Write([]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum})
 			}
 			csvWriter.Flush()
 			if absPath, err := filepath.Abs(args[1]); err == nil {
@@ -343,6 +345,31 @@ func parseProject(path string) (Project, error) {
 	return project, nil
 }
 
+// 解析dubbo注册中心dubbo注册信息
+func parseDubboUri(zkPath string) (*JarFileEntry, error) {
+	uri, err := url.ParseRequestURI(zkPath)
+	if err != nil {
+		return nil, err
+	}
+	query := uri.Query()
+	uptime, err := strconv.ParseInt(query.Get("timestamp"), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	buildTime, err := strconv.ParseInt(query.Get("info.buildTime"), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return &JarFileEntry{
+		Title:     query.Get("info.title"),
+		Source:    query.Get("info.source"),
+		BuildTime: time.UnixMilli(buildTime),
+		Md5sum:    query.Get("info.md5"),
+		Uptime:    time.UnixMilli(uptime),
+		Host:      uri.Hostname(),
+	}, nil
+}
+
 type Dep struct {
 	Name       string
 	Path       string
@@ -365,4 +392,14 @@ type Project struct {
 }
 type ProjectData struct {
 	ProjectFileName string
+}
+
+type JarFileEntry struct {
+	Title     string
+	Source    string
+	BuildTime time.Time
+	Md5sum    string
+	Uptime    time.Time
+	Host      string
+	Err       error
 }
