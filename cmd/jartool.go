@@ -184,7 +184,7 @@ func init() {
 		Short: "记录指定目录或指定jar包springboot项目版本信息",
 		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Info("**********创建文件*******")
+			log.Info("**********解析准备*******")
 			file, err := os.OpenFile(args[1], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
 			cobra.CheckErr(err)
 			log.Info("**********解析开始***********")
