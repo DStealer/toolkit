@@ -23,15 +23,15 @@ var (
 
 // Md5Sum 计算文件的md5值
 func Md5Sum(path string) (string, error) {
-	fin, err := os.OpenFile(path, os.O_RDONLY, 0644)
+	file, err := os.OpenFile(path, os.O_RDONLY, 0644)
 	if err != nil {
 		return "", err
 	}
-	defer fin.Close()
+	defer file.Close()
 	hash := md5.New()
 	bf := make([]byte, 512*1024)
 	for {
-		n, err := fin.Read(bf)
+		n, err := file.Read(bf)
 		if err != nil {
 			if err != io.EOF {
 				return "", err
@@ -49,10 +49,10 @@ func Md5Sum(path string) (string, error) {
 
 // ConvertPropertiesToMap 将Properties转换成map
 func ConvertPropertiesToMap(file *zip.File) (map[string]string, error) {
-	rs := make(map[string]string)
+	result := make(map[string]string)
 	handler, err := file.Open()
 	if err != nil {
-		return rs, err
+		return result, err
 	}
 	defer handler.Close()
 	reader := bufio.NewReader(handler)
@@ -62,9 +62,9 @@ func ConvertPropertiesToMap(file *zip.File) (map[string]string, error) {
 			continue
 		}
 		splitN := strings.SplitN(line, "=", 2)
-		rs[splitN[0]] = splitN[1]
+		result[splitN[0]] = splitN[1]
 	}
-	return rs, nil
+	return result, nil
 }
 
 // ZipFileToReader 将zip file转换成 zip.reader
