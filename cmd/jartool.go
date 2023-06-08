@@ -234,7 +234,7 @@ func init() {
 			connect, _, err := zk.Connect(zkServers, 3*time.Minute)
 			cobra.CheckErr(err)
 			defer connect.Close()
-			children, _, err := connect.Children("/dubbo/cn/providers")
+			children, _, err := connect.Children("/dubbo/cn.ApplicationInfoReport/consumers")
 			cobra.CheckErr(err)
 			for _, child := range children {
 				dubboInfoUri, err := url.PathUnescape(child)
@@ -249,7 +249,7 @@ func init() {
 				}
 				if value, ok := jarFileEntryMap[instance.Title]; ok {
 					log.Infof("check [%s]", instance.Title)
-					value = append(value, *instance)
+					jarFileEntryMap[instance.Title] = append(value, *instance)
 				} else {
 					log.Infof("not check [%s]", instance.Title)
 				}
