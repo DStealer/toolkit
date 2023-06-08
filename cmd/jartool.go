@@ -260,7 +260,7 @@ func init() {
 				basicEntry := value[0]
 				for i := 1; i < len(value); i++ {
 					if basicEntry.Md5sum != value[i].Md5sum {
-						value[i].Err = errors.New("")
+						value[i].Err = errors.New("mismatch")
 						basicEntry.Err = errors.New("failed")
 					}
 				}
