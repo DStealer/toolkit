@@ -6,12 +6,14 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"github.com/samuel/go-zookeeper/zk"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -218,6 +220,69 @@ func init() {
 		},
 	}
 	jarCmd.AddCommand(verLockCmd)
+
+	verCheckZkCmd := &cobra.Command{
+		Use:   "verCheck zkServers file.csv",
+		Short: "从zookeeper配置中心校验服务",
+		Args:  cobra.ExactArgs(2),
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Info("**********解析基准文件*******")
+			jarFileEntryMap, err := parseVerCsvFileToMap(args[1])
+			cobra.CheckErr(err)
+			log.Info("**********解析运行实例***********")
+			zkServers := strings.Split(args[0], ",")
+			connect, _, err := zk.Connect(zkServers, 3*time.Minute)
+			cobra.CheckErr(err)
+			defer connect.Close()
+			children, _, err := connect.Children("/dubbo/cn/providers")
+			cobra.CheckErr(err)
+			for _, child := range children {
+				dubboInfoUri, err := url.PathUnescape(child)
+				if err != nil {
+					log.Warnf("pathUnescape[%s] failed,ignore", child)
+					continue
+				}
+				instance, err := parseDubboUri(dubboInfoUri)
+				if err != nil {
+					log.Warnf("parseDubboUri[%s] failed,ignore", dubboInfoUri)
+					continue
+				}
+				if value, ok := jarFileEntryMap[instance.Title]; ok {
+					log.Infof("check [%s]", instance.Title)
+					value = append(value, *instance)
+				} else {
+					log.Infof("not check [%s]", instance.Title)
+				}
+			}
+			log.Info("**********结果分析***********")
+			sortedTitles := make([]string, 0, len(jarFileEntryMap))
+			for _, value := range jarFileEntryMap {
+				basicEntry := value[0]
+				for i := 1; i < len(value); i++ {
+					if basicEntry.Md5sum != value[i].Md5sum {
+						value[i].Err = errors.New("")
+						basicEntry.Err = errors.New("failed")
+					}
+				}
+				sortedTitles = append(sortedTitles, basicEntry.Title)
+			}
+			sort.Slice(sortedTitles, func(i, j int) bool {
+				return strings.Compare(sortedTitles[i], sortedTitles[j]) < 0
+			})
+			for _, title := range sortedTitles {
+				if value, ok := jarFileEntryMap[title]; ok {
+					basicEntry := value[0]
+					fmt.Printf("%s %s %s %s\n", basicEntry.Title, basicEntry.BuildTime.Format("2006-01-02 15:04:05"), basicEntry.Md5sum, basicEntry.Source)
+					for i := 1; i < len(value); i++ {
+						fmt.Printf("\t%s %s %s %s %s %s %s\n", value[i].Title, value[i].BuildTime.Format("2006-01-02 15:04:05"),
+							value[i].Md5sum, value[i].Host, value[i].Source, value[i].Uptime.Format("2006-01-02 15:04:05"), value[i].Err)
+					}
+				}
+			}
+			log.Info("**********结束运行***********")
+		},
+	}
+	jarCmd.AddCommand(verCheckZkCmd)
 }
 
 func parseEntry(path string) ([]Project, error) {
@@ -358,6 +423,9 @@ func parseDubboUri(zkPath string) (*JarFileEntry, error) {
 		return nil, err
 	}
 	query := uri.Query()
+	if query.Get("info.title") == "" {
+		return nil, errors.New("info.title not found")
+	}
 	uptime, err := strconv.ParseInt(query.Get("timestamp"), 10, 64)
 	if err != nil {
 		return nil, err
@@ -374,6 +442,45 @@ func parseDubboUri(zkPath string) (*JarFileEntry, error) {
 		Uptime:    time.UnixMilli(uptime),
 		Host:      uri.Hostname(),
 	}, nil
+}
+
+// 解析版本文件
+func parseVerCsvFileToMap(path string) (map[string][]JarFileEntry, error) {
+	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	reader := csv.NewReader(file)
+	titles, err := reader.Read()
+	if err != nil {
+		return nil, err
+	}
+	if !reflect.DeepEqual(titles, []string{"项目名称", "项目文件", "构建时间", "Md5值"}) {
+		return nil, errors.New(fmt.Sprintf("表头错误:%s", titles))
+	}
+	lines, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	entries := make(map[string][]JarFileEntry, 16)
+	for _, line := range lines {
+		buildTime, err := time.Parse("2006-01-02 15:04:05", line[2])
+		if err != nil {
+			log.Warnf("解析时间[%s] %v", line[2], err)
+		}
+		entry := JarFileEntry{
+			Title:     line[0],
+			Source:    line[1],
+			BuildTime: buildTime,
+			Md5sum:    line[3],
+		}
+		if _, ok := entries[entry.Title]; ok {
+			cobra.CheckErr("项目title重复:" + entry.Title)
+		}
+		entries[entry.Title] = []JarFileEntry{entry}
+	}
+	return entries, nil
 }
 
 type Dep struct {
@@ -401,11 +508,14 @@ type ProjectData struct {
 }
 
 type JarFileEntry struct {
+	//基础信息
 	Title     string
 	Source    string
 	BuildTime time.Time
 	Md5sum    string
-	Uptime    time.Time
-	Host      string
-	Err       error
+	//运行信息
+	Uptime time.Time
+	Host   string
+	//匹配信息
+	Err error
 }
