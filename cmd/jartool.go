@@ -222,7 +222,7 @@ func init() {
 	jarCmd.AddCommand(verLockCmd)
 
 	verCheckZkCmd := &cobra.Command{
-		Use:   "verCheck zkServers file.csv",
+		Use:   "vercheck zkServers file.csv",
 		Short: "从zookeeper配置中心校验服务",
 		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
