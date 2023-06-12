@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-set -e
+#set -x
+set -o nounset
+set -o pipefail
+
 # shellcheck disable=SC2046
 cd $(dirname "$0") || exit 1
+#项目工作目录
+TARGET_DIR=$(pwd -P)
 
 ###+++自定义参数开始
 #应用文件名称,必须
@@ -22,19 +27,22 @@ SPRING_CONFIG="--spring.config.location=file:./config/"
 OTHER_OPTS=""
 ###---自定义参数结束
 
-#工作目录
-TARGET_DIR=$(pwd)
+#读取环境变量参数
+if [ -f "${TARGET_DIR}/env" ]; then
+  echo "读取环境变量参数:${TARGET_DIR}/env"
+  source "${TARGET_DIR}/env"
+fi
+
+#准备配置文件目录
+if [ ! -d "${SPRING_CONFIG#*file:}" ]; then
+  mkdir "${SPRING_CONFIG#*file:}"
+fi
+
 #启动命令和参数
 COMMAND_ARGS="${JAVA_BIN} ${JAVA_OPTS:-} ${AGENT_OPTS:-} -jar ${TARGET_DIR}/${PROJECT_NAME} ${SPRING_PROFILE:-} ${SPRING_CONFIG:-} ${OTHER_OPTS:-}"
-#控制台输出文件
-OUT_FILE="${TARGET_DIR}/${PROJECT_NAME:0:${#PROJECT_NAME}-4}.out"
 
 case $1 in
 start)
-  if [ -f "${OUT_FILE}" ]; then
-    echo "Remove ${OUT_FILE} ..."
-    rm -f "${OUT_FILE}"
-  fi
   echo "Starting ${PROJECT_NAME} ... "
   # shellcheck disable=SC2009
   pid=$(ps ax | grep ${PROJECT_NAME} | grep "${TARGET_DIR}" | grep java | grep -v grep | awk '{print $1}')
@@ -66,20 +74,7 @@ start-foreground)
     echo "${PROJECT_NAME} running already."
     exit 1
   fi
-  ${COMMAND_ARGS} >"${OUT_FILE}" 2>&1 &
-  echo "${PROJECT_NAME} is starting"
-  sleep 5
-  # shellcheck disable=SC2009
-  pid=$(ps ax | grep ${PROJECT_NAME} | grep "${TARGET_DIR}" | grep java | grep -v grep | awk '{print $1}')
-  if [ -z "${pid}" ]; then
-    echo "${PROJECT_NAME} start failed,please check ${OUT_FILE}"
-    less "${OUT_FILE}"
-    exit 1
-  fi
-  echo "${PROJECT_NAME}(${pid}) start success"
-  # shellcheck disable=SC2046
-  echo -e "last start at:$(date)\n$(md5sum ${PROJECT_NAME})" >"${TARGET_DIR}/last_startup.txt"
-  tail -f -n 100 --pid "${pid}" "${OUT_FILE}"
+  ${COMMAND_ARGS}
   ;;
 stop)
   # shellcheck disable=SC2009
@@ -97,7 +92,7 @@ stop)
   pid=$(ps ax | grep ${PROJECT_NAME} | grep "${TARGET_DIR}" | grep java | grep -v grep | awk '{print $1}')
   if [ -n "${pid}" ]; then
     echo "${PROJECT_NAME} stop failed"
-    exec -1
+    exit 1
   fi
   echo "${PROJECT_NAME} stop success"
   ;;
@@ -120,20 +115,20 @@ status)
     cat "${TARGET_DIR}/last_startup.txt"
   fi
   ps --no-heading -Fp "${pid}"
-  netstat -nap | grep "${pid}"/java | grep LISTEN
+  netstat -anpl | grep "${pid}/java" | grep LISTEN
   ;;
 backup)
   if [ ! -d "${TARGET_DIR}/backup" ]; then
     mkdir "${TARGET_DIR}/backup"
   fi
 
-  find "${TARGET_DIR}/backup" -name "${PROJECT_NAME}-all-*" | sort -r | sed -n '7,$p' | xargs -I {} rm -f {}
+  find "${TARGET_DIR}/backup" -name "all-*" | sort -r | sed -n '7,$p' | xargs -I {} rm -f {}
 
   TMP_FILE=$(mktemp)
 
   tar -cf "${TMP_FILE}" "${PROJECT_NAME}" "${SPRING_CONFIG#*file:}"
 
-  TARGET_NAME="${PROJECT_NAME}-all-$(date +'%y%m%d%H%M%S')-$(md5sum "${TMP_FILE}" | awk '{print $1}').tar"
+  TARGET_NAME="all-$(date +'%y%m%d%H%M%S')-$(md5sum "${TMP_FILE}" | awk '{print $1}').tar"
 
   mv "${TMP_FILE}" "${TARGET_DIR}/backup/${TARGET_NAME}"
 
@@ -144,13 +139,13 @@ backup-conf)
     mkdir "${TARGET_DIR}/backup"
   fi
 
-  find "${TARGET_DIR}/backup" -name "${PROJECT_NAME}-conf-*" | sort -r | sed -n '7,$p' | xargs -I {} rm -f {}
+  find "${TARGET_DIR}/backup" -name "conf-*" | sort -r | sed -n '7,$p' | xargs -I {} rm -f {}
 
   TMP_FILE=$(mktemp)
 
   tar -cf "${TMP_FILE}" "${SPRING_CONFIG#*file:}"
 
-  TARGET_NAME="${PROJECT_NAME}-conf-$(date +'%y%m%d%H%M%S')-$(md5sum "${TMP_FILE}" | awk '{print $1}').tar"
+  TARGET_NAME="conf-$(date +'%y%m%d%H%M%S')-$(md5sum "${TMP_FILE}" | awk '{print $1}').tar"
 
   mv "${TMP_FILE}" "${TARGET_DIR}/backup/${TARGET_NAME}"
 
@@ -161,13 +156,13 @@ backup-jar)
     mkdir "${TARGET_DIR}/backup"
   fi
 
-  find "${TARGET_DIR}/backup" -name "${PROJECT_NAME}-jar-*" | sort -r | sed -n '7,$p' | xargs -I {} rm -f {}
+  find "${TARGET_DIR}/backup" -name "jar-*" | sort -r | sed -n '7,$p' | xargs -I {} rm -f {}
 
   TMP_FILE=$(mktemp)
 
   tar -cf "${TMP_FILE}" "${PROJECT_NAME}"
 
-  TARGET_NAME="${PROJECT_NAME}-jar-$(date +'%y%m%d%H%M%S')-$(md5sum "${TMP_FILE}" | awk '{print $1}').tar"
+  TARGET_NAME="jar-$(date +'%y%m%d%H%M%S')-$(md5sum "${TMP_FILE}" | awk '{print $1}').tar"
 
   mv "${TMP_FILE}" "${TARGET_DIR}/backup/${TARGET_NAME}"
 
