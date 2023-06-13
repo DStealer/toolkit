@@ -14,7 +14,7 @@ PROJECT_NAME="{{.ProjectFileName}}"
 #使用的jdk,必须
 JAVA_BIN="/usr/bin/env java"
 #jvm参数,可选
-JAVA_OPTS="-Xms64M -Xmx256M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=./dump"
+JAVA_OPTS="-Xms64M -Xmx256M -XX:+HeapDumpOnOutOfMemoryError"
 #java agent,可选
 #AGENT_OPTS="-javaagent:/fakepath/skywalking-agent.jar -Dskywalking.agent.service_name=xxx -Dskywalking.collector.servers=ip:port"
 #spring profile,可选
