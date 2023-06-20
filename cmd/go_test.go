@@ -606,6 +606,7 @@ func (h HttpTransferHandler) HandleStmtExecute(ctx interface{}, query string, ar
 	log.Infof("request:%s success :%d", url, httpStatus)
 
 	header := response.Header
+	//remove Hop-by-hop header
 	for _, hd := range []string{"Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailers", "Transfer-Encoding", "Upgrade"} {
 		header.Del(hd)
 	}
