@@ -573,7 +573,7 @@ func (h HttpTransferHandler) HandleStmtExecute(ctx interface{}, query string, ar
 	bodyParam := cast.ToString(args[4])
 
 	var url string
-	if h.BaseUrl == "" {
+	if h.BaseUrl != "" {
 		url = fmt.Sprintf("%s%s?%s", h.BaseUrl, uriParam, queryParam)
 	} else {
 		url = fmt.Sprintf("%s?%s", uriParam, queryParam)
