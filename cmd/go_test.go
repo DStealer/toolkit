@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/ZZMarquis/gm/sm4"
 	auth "github.com/abbot/go-http-auth"
@@ -13,12 +14,17 @@ import (
 	_ "github.com/go-mysql-org/go-mysql/driver"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
+	"github.com/go-mysql-org/go-mysql/server"
 	"github.com/heroku/docker-registry-client/registry"
+	"github.com/pingcap/tidb/parser"
+	_ "github.com/pingcap/tidb/parser/test_driver"
 	"github.com/prometheus/common/log"
 	"github.com/robfig/cron"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
+	"io"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -32,6 +38,7 @@ import (
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -530,4 +537,179 @@ func TestHttpAuth(t *testing.T) {
 
 	err = http.ListenAndServe("127.0.0.1:8080", nil)
 	cobra.CheckErr(err)
+}
+
+type HttpTransferHandler struct {
+	BaseUrl string
+	Client  http.Client
+}
+
+func (h HttpTransferHandler) UseDB(dbName string) error {
+	return fmt.Errorf("not supported now")
+}
+func (h HttpTransferHandler) HandleQuery(query string) (*mysql.Result, error) {
+	return nil, fmt.Errorf("not supported now")
+}
+
+func (h HttpTransferHandler) HandleFieldList(table string, fieldWildcard string) ([]*mysql.Field, error) {
+	return nil, fmt.Errorf("not supported now")
+}
+
+func (h HttpTransferHandler) HandleStmtPrepare(query string) (int, int, interface{}, error) {
+	return 5, 3, context.Background(), nil
+}
+
+func (h HttpTransferHandler) HandleStmtExecute(ctx interface{}, query string, args []interface{}) (*mysql.Result, error) {
+	log.Infof("查询语句:%s %v", query, args)
+	if len(args) != 5 {
+		return nil, fmt.Errorf("args len wrong")
+	}
+	methodParam := cast.ToString(args[0])
+	uriParam := cast.ToString(args[1])
+	queryParam := cast.ToString(args[2])
+	headerParam := cast.ToString(args[3])
+	bodyParam := cast.ToString(args[4])
+
+	var url string
+	if h.BaseUrl == "" {
+		url = fmt.Sprintf("%s%s?%s", h.BaseUrl, uriParam, queryParam)
+	} else {
+		url = fmt.Sprintf("%s?%s", uriParam, queryParam)
+	}
+	request, err := http.NewRequest(methodParam, url, strings.NewReader(bodyParam))
+	if headerParam != "" {
+		headers := make(map[string][]string, 4)
+		err := json.Unmarshal([]byte(headerParam), &headers)
+		if err != nil {
+			return nil, err
+		}
+		for name, values := range headers {
+			for _, value := range values {
+				request.Header.Add(name, value)
+			}
+		}
+	}
+	response, err := h.Client.Do(request)
+	if err != nil {
+		log.Warnf("request:%s error:%v", url, err)
+		return nil, err
+	}
+
+	httpStatus := response.StatusCode
+
+	log.Infof("request:%s success :%d", url, httpStatus)
+
+	headerBytes, err := json.Marshal(response.Header)
+	if err != nil {
+		return nil, err
+	}
+	header := string(headerBytes)
+
+	defer response.Body.Close()
+
+	bytes, err := io.ReadAll(response.Body)
+
+	if err != nil {
+		return nil, err
+	}
+	body := string(bytes)
+
+	r, err := mysql.BuildSimpleBinaryResultset([]string{"httpStatus", "headers", "body"}, [][]interface{}{{httpStatus, header, body}})
+
+	if err != nil {
+		return nil, err
+	}
+	return &mysql.Result{
+		Status:       0,
+		Warnings:     0,
+		InsertId:     0,
+		AffectedRows: 0,
+		Resultset:    r,
+	}, nil
+}
+
+func (h HttpTransferHandler) HandleStmtClose(ctx interface{}) error {
+	return nil
+}
+
+func (h HttpTransferHandler) HandleOtherCommand(cmd byte, data []byte) error {
+	return fmt.Errorf("not supported operation")
+}
+
+func TestSqlProxy(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:3306")
+	if err != nil {
+		log.Fatal(err)
+	}
+	client := http.Client{Timeout: 60 * time.Second}
+	baseUrl := "https://www.baidu.com"
+	defer listener.Close()
+	for {
+		// Accept a new connection once
+		c, err := listener.Accept()
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
+		conn, err := server.NewConn(c, "root", "root", HttpTransferHandler{
+			BaseUrl: baseUrl, Client: client})
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
+		go func() {
+			for {
+				if err := conn.HandleCommand(); err != nil {
+					log.Warn(err)
+					return
+				}
+			}
+			return
+		}()
+	}
+}
+
+func TestQueryDb(t *testing.T) {
+
+	pool := mysqlclient.NewPool(log.Infof, 10, 100, 10, "127.0.0.1:3306", "root", "root", "")
+
+	timeout, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
+
+	defer cancelFunc()
+
+	conn, err := pool.GetConn(timeout)
+	cobra.CheckErr(err)
+
+	defer conn.Close()
+	methodParam := "GET"
+	uriParam := "/"
+	queryParam := "a=b&c=d"
+	headerParam := ""
+	bodyParam := ""
+
+	result, err := conn.Execute("select httpStatus,headers,body from t_transfer where methodParam = ? and uriParam=? and queryParam=? and headerParam= ? and bodyParam = ?", []interface{}{methodParam, uriParam, queryParam, headerParam, bodyParam}...)
+
+	cobra.CheckErr(err)
+
+	defer result.Close()
+	rs := result.Resultset
+	if rs == nil {
+		return
+	}
+	httpStatus, err := rs.GetIntByName(0, "httpStatus")
+	cobra.CheckErr(err)
+	headers, err := rs.GetStringByName(0, "headers")
+	cobra.CheckErr(err)
+	body, err := rs.GetStringByName(0, "body")
+	cobra.CheckErr(err)
+	log.Infof("响应数据:%d ,%s ,%s ", httpStatus, headers, body)
+}
+
+func TestSqlParser(t *testing.T) {
+	p := parser.New()
+
+	stmtNodes, _, err := p.Parse("SELECT a, b FROM t", "utf8", "")
+	cobra.CheckErr(err)
+
+	log.Infof("data:%v", &stmtNodes[0])
 }
