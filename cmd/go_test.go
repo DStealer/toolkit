@@ -556,6 +556,9 @@ func (h HttpTransferHandler) HandleFieldList(table string, fieldWildcard string)
 }
 
 func (h HttpTransferHandler) HandleStmtPrepare(query string) (int, int, interface{}, error) {
+	if !strings.EqualFold("select httpStatus,headers,body from t_transfer where methodParam = ? and uriParam= ? and queryParam= ? and headerParam= ? and bodyParam = ?", query) {
+		return 0, 0, nil, fmt.Errorf("not supported stmt now")
+	}
 	return 5, 3, context.Background(), nil
 }
 
@@ -694,7 +697,7 @@ func TestQueryDb(t *testing.T) {
 	headerParam := ""
 	bodyParam := ""
 
-	result, err := conn.Execute("select httpStatus,headers,body from t_transfer where methodParam = ? and uriParam=? and queryParam=? and headerParam= ? and bodyParam = ?", []interface{}{methodParam, uriParam, queryParam, headerParam, bodyParam}...)
+	result, err := conn.Execute("select httpStatus,headers,body from t_transfer where methodParam = ? and uriParam= ? and queryParam= ? and headerParam= ? and bodyParam = ?", []interface{}{methodParam, uriParam, queryParam, headerParam, bodyParam}...)
 
 	cobra.CheckErr(err)
 
