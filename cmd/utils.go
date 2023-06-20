@@ -125,6 +125,16 @@ out:
 	}
 }
 
+// 判断包含
+func ContainsFold(dest string, ranges ...string) bool {
+	for _, e := range ranges {
+		if strings.EqualFold(e, dest) {
+			return true
+		}
+	}
+	return false
+}
+
 // 获取本地ip地址
 func GetLocalIP() string {
 	addrs, err := net.InterfaceAddrs()

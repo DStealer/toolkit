@@ -560,7 +560,6 @@ func (h HttpTransferHandler) HandleStmtPrepare(query string) (int, int, interfac
 }
 
 func (h HttpTransferHandler) HandleStmtExecute(ctx interface{}, query string, args []interface{}) (*mysql.Result, error) {
-	log.Infof("查询语句:%s %v", query, args)
 	if len(args) != 5 {
 		return nil, fmt.Errorf("args len wrong")
 	}
@@ -584,6 +583,10 @@ func (h HttpTransferHandler) HandleStmtExecute(ctx interface{}, query string, ar
 			return nil, err
 		}
 		for name, values := range headers {
+			//remove Hop-by-hop header
+			if ContainsFold(name, "Host", "Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailers", "Transfer-Encoding", "Upgrade") {
+				continue
+			}
 			for _, value := range values {
 				request.Header.Add(name, value)
 			}
@@ -599,11 +602,15 @@ func (h HttpTransferHandler) HandleStmtExecute(ctx interface{}, query string, ar
 
 	log.Infof("request:%s success :%d", url, httpStatus)
 
-	headerBytes, err := json.Marshal(response.Header)
+	header := response.Header
+	for _, hd := range []string{"Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailers", "Transfer-Encoding", "Upgrade"} {
+		header.Del(hd)
+	}
+	headerBytes, err := json.Marshal(header)
 	if err != nil {
 		return nil, err
 	}
-	header := string(headerBytes)
+	headerJson := string(headerBytes)
 
 	defer response.Body.Close()
 
@@ -614,7 +621,7 @@ func (h HttpTransferHandler) HandleStmtExecute(ctx interface{}, query string, ar
 	}
 	body := string(bytes)
 
-	r, err := mysql.BuildSimpleBinaryResultset([]string{"httpStatus", "headers", "body"}, [][]interface{}{{httpStatus, header, body}})
+	r, err := mysql.BuildSimpleBinaryResultset([]string{"httpStatus", "headers", "body"}, [][]interface{}{{httpStatus, headerJson, body}})
 
 	if err != nil {
 		return nil, err
