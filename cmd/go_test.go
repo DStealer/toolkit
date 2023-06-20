@@ -695,7 +695,7 @@ func TestQueryDb(t *testing.T) {
 	methodParam := "GET"
 	uriParam := "/"
 	queryParam := "a=b&c=d"
-	headerParam := ""
+	headerParam := "{\"a\":[\"b\"]}"
 	bodyParam := ""
 
 	result, err := conn.Execute("select httpStatus,headers,body from t_transfer where methodParam = ? and uriParam= ? and queryParam= ? and headerParam= ? and bodyParam = ?", []interface{}{methodParam, uriParam, queryParam, headerParam, bodyParam}...)
