@@ -60,7 +60,7 @@ func init() {
 							}
 						}
 						lck.Unlock()
-						log.Println(iter.Val())
+						fmt.Println(iter.Val())
 					}
 					return nil
 				})
@@ -80,7 +80,7 @@ func init() {
 							os.Exit(0)
 						}
 					}
-					log.Println(iter.Val())
+					fmt.Println(iter.Val())
 				}
 				log.Printf("命中key:%d\n", hit)
 			}
