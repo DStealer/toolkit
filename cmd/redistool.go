@@ -87,17 +87,20 @@ func init() {
 		},
 	})
 
-	redisCmd.AddCommand(&cobra.Command{
+	redisDelCmd := &cobra.Command{
 		Use:   "del [key]",
 		Short: "删除redis中键,支持模糊匹配",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("高危操作! 确认删除:[%s]\n请输入yes:继续操作 ", args[0])
 			var confirm string
-			_, err := fmt.Scanln(&confirm)
-			if err != nil || !strings.EqualFold("yes", confirm) {
-				log.Println("选择退出操作")
-				os.Exit(0)
+			confirm, _ = cmd.Flags().GetString("confirm")
+			if !strings.EqualFold("yes", confirm) {
+				fmt.Printf("高危操作! 确认删除:[%s]\n请输入yes:继续操作 ", args[0])
+				_, err := fmt.Scanln(&confirm)
+				if err != nil || !strings.EqualFold("yes", confirm) {
+					log.Println("选择退出操作")
+					os.Exit(0)
+				}
 			}
 			client := newRedisClient()
 			defer client.Close()
@@ -159,7 +162,10 @@ func init() {
 				log.Printf("总共清理缓存数量:%d\n", affected)
 			}
 		},
-	})
+	}
+	redisDelCmd.Flags().String("confirm", "no", "yes 默认不执行确认执行,其他")
+
+	redisCmd.AddCommand(redisDelCmd)
 	redisCmd.AddCommand(&cobra.Command{
 		Use:   "type [key]",
 		Short: "查看redis中键信息",
