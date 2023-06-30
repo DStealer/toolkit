@@ -55,7 +55,7 @@ func init() {
 							var confirm string
 							_, err := fmt.Scanln(&confirm)
 							if err != nil || !strings.EqualFold("yes", confirm) {
-								log.Println("选择退出")
+								log.Info("选择退出")
 								os.Exit(0)
 							}
 						}
@@ -65,7 +65,7 @@ func init() {
 					return nil
 				})
 				cobra.CheckErr(err)
-				log.Printf("命中key:%d\n", atomic.LoadInt64(&hit))
+				log.Infof("命中key:%d\n", atomic.LoadInt64(&hit))
 			default:
 				iter := client.Scan(0, args[0], 100).Iterator()
 				hit := 0
@@ -76,13 +76,13 @@ func init() {
 						var confirm string
 						_, err := fmt.Scanln(&confirm)
 						if err != nil || !strings.EqualFold("yes", confirm) {
-							log.Println("选择退出")
+							log.Info("选择退出")
 							os.Exit(0)
 						}
 					}
 					fmt.Println(iter.Val())
 				}
-				log.Printf("命中key:%d\n", hit)
+				log.Infof("命中key:%d\n", hit)
 			}
 		},
 	})
@@ -98,7 +98,7 @@ func init() {
 				fmt.Printf("高危操作! 确认删除:[%s]\n请输入yes:继续操作 ", args[0])
 				_, err := fmt.Scanln(&confirm)
 				if err != nil || !strings.EqualFold("yes", confirm) {
-					log.Println("选择退出操作")
+					log.Info("选择退出操作")
 					os.Exit(0)
 				}
 			}
@@ -118,13 +118,13 @@ func init() {
 								affected, err := client.Del(keys...).Result()
 								cobra.CheckErr(err)
 								atomic.AddInt64(&hit, affected)
-								log.Printf("清理缓存数量:%d\n", hit)
+								log.Infof("清理缓存数量:%d\n", hit)
 								keys = make([]string, 0)
 							}
 							keys = append(keys, key)
 						}
 						if len(keys) > 0 {
-							log.Printf("清理缓存数量:%d\n", hit)
+							log.Infof("清理缓存数量:%d\n", hit)
 							affected, err := client.Del(keys...).Result()
 							cobra.CheckErr(err)
 							atomic.AddInt64(&hit, affected)
@@ -132,7 +132,7 @@ func init() {
 						return nil
 					})
 					cobra.CheckErr(err)
-					log.Printf("命中key:%d\n", atomic.LoadInt64(&hit))
+					log.Infof("命中key:%d\n", atomic.LoadInt64(&hit))
 				default:
 					iter := client.Scan(0, args[0], 100).Iterator()
 					keys := make([]string, 0)
@@ -143,23 +143,23 @@ func init() {
 							affected, err := client.Del(keys...).Result()
 							cobra.CheckErr(err)
 							hit += affected
-							log.Printf("清理缓存数量:%d\n", hit)
+							log.Infof("清理缓存数量:%d\n", hit)
 							keys = make([]string, 0)
 						}
 						keys = append(keys, key)
 					}
 					if len(keys) > 0 {
-						log.Printf("清理缓存数量:%d\n", hit)
+						log.Infof("清理缓存数量:%d\n", hit)
 						affected, err := client.Del(keys...).Result()
 						cobra.CheckErr(err)
 						hit += affected
 					}
-					log.Printf("总共清理缓存数量:%d\n", hit)
+					log.Infof("总共清理缓存数量:%d\n", hit)
 				}
 			} else {
 				affected, err := client.Del(args[0]).Result()
 				cobra.CheckErr(err)
-				log.Printf("总共清理缓存数量:%d\n", affected)
+				log.Infof("总共清理缓存数量:%d\n", affected)
 			}
 		},
 	}
@@ -243,7 +243,7 @@ func init() {
 				sessions, err := client.SMembers(indexKeys).Result()
 				cobra.CheckErr(err)
 				for _, session := range sessions {
-					log.Printf("清理用户:%s 会话:%s\n", principal, session)
+					log.Infof("清理用户:%s 会话:%s\n", principal, session)
 					_, err = client.Del(fmt.Sprintf("spring:session:sessions:expires:%s", strings.Trim(session, "\""))).Result()
 					cobra.CheckErr(err)
 					_, err = client.Del(fmt.Sprintf("spring:session:sessions:%s", strings.Trim(session, "\""))).Result()
@@ -255,7 +255,7 @@ func init() {
 					cobra.CheckErr(err)
 				}
 			}
-			log.Println("处理完成,处理记录", hit, "条")
+			log.Info("处理完成,处理记录", hit, "条")
 		},
 	})
 }
