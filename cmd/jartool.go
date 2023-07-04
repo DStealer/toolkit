@@ -234,7 +234,7 @@ func init() {
 			connect, _, err := zk.Connect(zkServers, 3*time.Minute)
 			cobra.CheckErr(err)
 			defer connect.Close()
-			children, _, err := connect.Children("/dubbo/cn.ApplicationInfoReport/consumers")
+			children, _, err := connect.Children("/dubbo/cn.com.component.findbug.dubbo.ApplicationInfoReport/consumers")
 			cobra.CheckErr(err)
 			for _, child := range children {
 				dubboInfoUri, err := url.PathUnescape(child)
@@ -272,10 +272,9 @@ func init() {
 			for _, title := range sortedTitles {
 				if value, ok := jarFileEntryMap[title]; ok {
 					basicEntry := value[0]
-					fmt.Printf("%s %s %s %s\n", basicEntry.Title, basicEntry.BuildTime.Format("2006-01-02 15:04:05"), basicEntry.Md5sum, basicEntry.Source)
+					fmt.Printf("%s,%s,%s,%s,%d nodes\n", basicEntry.Title, basicEntry.BuildTime.Format("2006-01-02 15:04:05"), basicEntry.Md5sum, basicEntry.Source, len(value)-1)
 					for i := 1; i < len(value); i++ {
-						fmt.Printf("\t%s %s %s %s %s %s %s\n", value[i].Title, value[i].BuildTime.Format("2006-01-02 15:04:05"),
-							value[i].Md5sum, value[i].Host, value[i].Source, value[i].Uptime.Format("2006-01-02 15:04:05"), value[i].Err)
+						fmt.Printf("\t%s,%s,%s,%s,%s,%s,%s\n", value[i].Title, value[i].BuildTime.Format("2006-01-02 15:04:05"), value[i].Md5sum, value[i].Host, value[i].Source, value[i].Uptime.Format("2006-01-02 15:04:05"), value[i].Err)
 					}
 				}
 			}
