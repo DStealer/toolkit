@@ -751,7 +751,7 @@ func TestFixUpPackageLock(t *testing.T) {
 	} else {
 
 	}
-	marshal, err := json.Marshal(packageLock)
+	marshal, err := json.MarshalIndent(packageLock, "", "  ")
 	cobra.CheckErr(err)
 	err = os.Rename(filePath, filePath+".original")
 	cobra.CheckErr(err)
