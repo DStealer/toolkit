@@ -724,3 +724,63 @@ func TestSqlParser(t *testing.T) {
 
 	log.Infof("data:%v", &stmtNodes[0])
 }
+
+func TestFixUpPackageLock(t *testing.T) {
+
+	registryString := "https://registry.npmmirror.com/"
+	filePath := "/data/Temprory/gwmini-h5-feature-20230802/package-lock.json"
+
+	file, err := os.ReadFile(filePath)
+	cobra.CheckErr(err)
+	packageLock := make(map[string]interface{}, 4)
+	err = json.Unmarshal(file, &packageLock)
+	cobra.CheckErr(err)
+
+	lockfileVersion, ok := packageLock["lockfileVersion"]
+
+	if !ok || cast.ToInt(lockfileVersion) == 1 { //npm v5  v6.
+		if dependencies, ok := packageLock["dependencies"]; ok {
+			for name, dependency := range dependencies.(map[string]interface{}) {
+				FixupResolvedRegistryV1(name, dependency.(map[string]interface{}), registryString)
+			}
+		}
+	} else if cast.ToInt(lockfileVersion) == 2 { //npm v7 backwards compatible to v1 lockfiles.
+
+	} else if cast.ToInt(lockfileVersion) == 3 { //npm v7 without backwards compatibility
+
+	} else {
+
+	}
+	marshal, err := json.Marshal(packageLock)
+	cobra.CheckErr(err)
+	err = os.Rename(filePath, filePath+".original")
+	cobra.CheckErr(err)
+	err = os.WriteFile(filePath, marshal, 0x644)
+	cobra.CheckErr(err)
+
+}
+func FixupResolvedRegistryV1(name string, dependency map[string]interface{}, registryString string) {
+	if name == "" || len(dependency) == 0 || registryString == "" {
+		return
+	}
+	if resolved, ok := dependency["resolved"]; ok {
+		if resolvedString, ok := resolved.(string); ok {
+			if !strings.HasPrefix(resolvedString, registryString) {
+				if strings.HasPrefix(resolvedString, "http") {
+					index := strings.Index(resolvedString, name)
+					if index > -1 {
+						dependency["resolved"] = registryString + resolvedString[index:]
+						log.Infof("fixup %s to %s", resolvedString, registryString+resolvedString[index:])
+					}
+				} else {
+					log.Warnf("can't fixup %s", resolvedString)
+				}
+			}
+		}
+	}
+	if dependencies, ok := dependency["dependencies"]; ok {
+		for name, dependency := range dependencies.(map[string]interface{}) {
+			FixupResolvedRegistryV1(name, dependency.(map[string]interface{}), registryString)
+		}
+	}
+}
