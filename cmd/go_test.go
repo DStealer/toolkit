@@ -759,7 +759,7 @@ func TestFixUpPackageLock(t *testing.T) {
 	cobra.CheckErr(err)
 
 }
-func FixupResolvedRegistryV1(name string, dependency map[string]interface{}, registryString string) {
+func FixupResolvedRegistryV1(name string, dependency map[string]interface{}, registryString string) (fixed bool) {
 	if name == "" || len(dependency) == 0 || registryString == "" {
 		return
 	}
@@ -770,6 +770,7 @@ func FixupResolvedRegistryV1(name string, dependency map[string]interface{}, reg
 					index := strings.Index(resolvedString, name)
 					if index > -1 {
 						dependency["resolved"] = registryString + resolvedString[index:]
+						fixed = true
 						log.Infof("fixup %s to %s", resolvedString, registryString+resolvedString[index:])
 					}
 				} else {
@@ -780,7 +781,8 @@ func FixupResolvedRegistryV1(name string, dependency map[string]interface{}, reg
 	}
 	if dependencies, ok := dependency["dependencies"]; ok {
 		for name, dependency := range dependencies.(map[string]interface{}) {
-			FixupResolvedRegistryV1(name, dependency.(map[string]interface{}), registryString)
+			fixed = fixed || FixupResolvedRegistryV1(name, dependency.(map[string]interface{}), registryString)
 		}
 	}
+	return fixed
 }
