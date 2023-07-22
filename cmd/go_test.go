@@ -781,7 +781,7 @@ func FixupResolvedRegistryV1(name string, dependency map[string]interface{}, reg
 	}
 	if dependencies, ok := dependency["dependencies"]; ok {
 		for name, dependency := range dependencies.(map[string]interface{}) {
-			fixed = fixed || FixupResolvedRegistryV1(name, dependency.(map[string]interface{}), registryString)
+			fixed = FixupResolvedRegistryV1(name, dependency.(map[string]interface{}), registryString) || fixed
 		}
 	}
 	return fixed
