@@ -728,7 +728,7 @@ func TestSqlParser(t *testing.T) {
 func TestFixUpPackageLock(t *testing.T) {
 
 	registryString := "https://registry.npmmirror.com/"
-	filePath := "/data/Temprory/gwmini-h5-feature-20230802/package-lock.json"
+	filePath := "/data/Workspaces/WebProjects/web-organ/package-lock.json"
 
 	file, err := os.ReadFile(filePath)
 	cobra.CheckErr(err)
@@ -747,7 +747,13 @@ func TestFixUpPackageLock(t *testing.T) {
 	} else if cast.ToInt(lockfileVersion) == 2 { //npm v7 backwards compatible to v1 lockfiles.
 
 	} else if cast.ToInt(lockfileVersion) == 3 { //npm v7 without backwards compatibility
-
+		if packages, ok := packageLock["packages"]; ok {
+			for name, pkg := range packages.(map[string]interface{}) {
+				if name != "" {
+					FixupResolvedRegistryV3(name, pkg.(map[string]interface{}), registryString)
+				}
+			}
+		}
 	} else {
 
 	}
@@ -782,6 +788,30 @@ func FixupResolvedRegistryV1(name string, dependency map[string]interface{}, reg
 	if dependencies, ok := dependency["dependencies"]; ok {
 		for name, dependency := range dependencies.(map[string]interface{}) {
 			fixed = FixupResolvedRegistryV1(name, dependency.(map[string]interface{}), registryString) || fixed
+		}
+	}
+	return fixed
+}
+func FixupResolvedRegistryV3(name string, dependency map[string]interface{}, registryString string) (fixed bool) {
+	if name == "" || len(dependency) == 0 || registryString == "" {
+		return
+	}
+	if resolved, ok := dependency["resolved"]; ok {
+		if resolvedString, ok := resolved.(string); ok {
+			if !strings.HasPrefix(resolvedString, registryString) {
+				if strings.HasPrefix(resolvedString, "http") {
+					nameIndex := strings.LastIndex(name, "node_modules/") + len("node_modules/")
+					name = name[nameIndex:]
+					index := strings.Index(resolvedString, name)
+					if index > -1 {
+						dependency["resolved"] = registryString + resolvedString[index:]
+						fixed = true
+						log.Infof("fixup %s to %s", resolvedString, registryString+resolvedString[index:])
+					}
+				} else {
+					log.Warnf("can't fixup %s", resolvedString)
+				}
+			}
 		}
 	}
 	return fixed
