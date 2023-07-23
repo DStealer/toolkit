@@ -44,6 +44,7 @@ func init() {
 				}
 			} else if cast.ToInt(lockfileVersion) == 2 { //npm v7 backwards compatible to v1 lockfiles.
 				log.Warn("暂时不支持v2版本文件")
+				fixupped = false
 			} else if cast.ToInt(lockfileVersion) == 3 { //npm v7 without backwards compatibility
 				if packages, ok := packageLock["packages"]; ok {
 					for name, pkg := range packages.(map[string]interface{}) {
@@ -51,7 +52,8 @@ func init() {
 					}
 				}
 			} else {
-
+				log.Warn("不支持的文件")
+				fixupped = false
 			}
 			if !fixupped {
 				log.Info("文件无需修订")
