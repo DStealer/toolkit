@@ -24,4 +24,5 @@ func init() {
 	rootCmd.AddCommand(k8sCmd)
 	rootCmd.AddCommand(mysqlCmd)
 	rootCmd.AddCommand(httpCmd)
+	rootCmd.AddCommand(nodeJsCmd)
 }
