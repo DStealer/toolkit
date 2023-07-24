@@ -80,6 +80,7 @@ func FixupResolvedRegistryV1(name string, dependency map[string]interface{}, reg
 	}
 	if resolved, ok := dependency["resolved"]; ok {
 		if resolvedString, ok := resolved.(string); ok {
+			resolvedString = strings.Replace(resolvedString, "/download/", "-", 1)
 			if !strings.HasPrefix(resolvedString, registryString) {
 				if strings.HasPrefix(resolvedString, "http") {
 					index := strings.Index(resolvedString, name)
