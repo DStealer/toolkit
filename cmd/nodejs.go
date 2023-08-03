@@ -43,8 +43,16 @@ func init() {
 					}
 				}
 			} else if cast.ToInt(lockfileVersion) == 2 { //npm v7 backwards compatible to v1 lockfiles.
-				log.Warn("暂时不支持v2版本文件")
-				fixupped = false
+				if dependencies, ok := packageLock["dependencies"]; ok {
+					for name, dependency := range dependencies.(map[string]interface{}) {
+						fixupped = FixupResolvedRegistryV1(name, dependency.(map[string]interface{}), registry) || fixupped
+					}
+				}
+				if packages, ok := packageLock["packages"]; ok {
+					for name, pkg := range packages.(map[string]interface{}) {
+						fixupped = FixupResolvedRegistryV3(name, pkg.(map[string]interface{}), registry) || fixupped
+					}
+				}
 			} else if cast.ToInt(lockfileVersion) == 3 { //npm v7 without backwards compatibility
 				if packages, ok := packageLock["packages"]; ok {
 					for name, pkg := range packages.(map[string]interface{}) {
