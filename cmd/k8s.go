@@ -134,7 +134,7 @@ func init() {
 			}
 
 			if pod.Status.Phase != v1.PodRunning {
-				cobra.CheckErr(fmt.Sprintf("unable to forward port because pod is not running. Current status=%v", pod.Status.Phase))
+				cobra.CheckErr(fmt.Sprintf("unable to forward port because pod is not running. Current status=%v", pod))
 			}
 
 			req := clientSet.CoreV1().RESTClient().Post().
