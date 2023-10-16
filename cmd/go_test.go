@@ -799,15 +799,15 @@ type Pair struct {
 	r int64
 }
 
-func StepRange(lid, hid, step int64) []Pair {
+func StepRange(lid, rid, step int64) []Pair {
 	pairs := make([]Pair, 16)
-	if lid > hid || step < 0 {
+	if lid > rid || step < 0 {
 		return pairs
 	}
 
-	for i := lid; i <= hid; i = i + step {
-		h := hid
-		if i+step <= hid {
+	for i := lid; i <= rid; i = i + step {
+		h := rid
+		if i+step <= rid {
 			h = i + step
 		}
 		pair := Pair{
