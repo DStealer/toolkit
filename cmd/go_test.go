@@ -771,15 +771,16 @@ func TestBatchUpdate(t *testing.T) {
 	defer conn.Close()
 
 	table := "`gwtrip-advertisement`.user_tp_content"
+	update := "update `gwtrip-advertisement`.b2c_faq_userrecord set loginTime=loginTime, enc_mobile=TO_BASE64(AES_ENCRYPT(mobile,'key')) ,gmt_modified=NOW() where id between ? and ?"
 
 	result, err := conn.Execute(fmt.Sprintf("SHOW KEYS FROM %s WHERE Key_name = 'PRIMARY' ", table))
 	cobra.CheckErr(err)
-	defer result.Close()
 	if result.RowNumber() != 1 {
 		cobra.CheckErr("查询主键错误")
 	}
 	keyName, err := result.GetStringByName(0, "Column_name")
 	cobra.CheckErr(err)
+	result.Close()
 
 	result, err = conn.Execute(fmt.Sprintf("select min(%s) as Lid, max(%s) as Hid from %s", keyName, keyName, table))
 	cobra.CheckErr(err)
@@ -790,9 +791,14 @@ func TestBatchUpdate(t *testing.T) {
 	cobra.CheckErr(err)
 	hid, err := result.GetIntByName(0, "Hid")
 	cobra.CheckErr(err)
+	result.Close()
+
 	fmt.Println(lid, hid)
-	for _, rng := range StepRange(lid, hid, 250) {
-		fmt.Println(rng)
+	for _, sr := range StepRange(1, 10000001, 250) {
+		result, err = conn.Execute(update, sr.l, sr.r)
+		cobra.CheckErr(err)
+		log.Infof("执行:%v-%v,更新:%v条", sr.l, sr.r, result.AffectedRows)
+		result.Close()
 	}
 
 }
