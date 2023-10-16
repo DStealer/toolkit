@@ -791,6 +791,9 @@ func TestBatchUpdate(t *testing.T) {
 	hid, err := result.GetIntByName(0, "Hid")
 	cobra.CheckErr(err)
 	fmt.Println(lid, hid)
+	for x := range StepRange(lid, hid, 100) {
+		fmt.Println(x)
+	}
 
 }
 
