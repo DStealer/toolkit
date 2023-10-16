@@ -793,3 +793,31 @@ func TestBatchUpdate(t *testing.T) {
 	fmt.Println(lid, hid)
 
 }
+
+type Pair struct {
+	l int64
+	r int64
+}
+
+func StepRange(lid, hid, step int64) []Pair {
+	pairs := make([]Pair, 16)
+	if lid > hid || step < 0 {
+		return pairs
+	}
+
+	for i := lid; i <= hid; i = i + step {
+		h := lid
+		if i+step <= hid {
+			h = i + step
+		} else {
+			h = hid
+		}
+		pair := Pair{
+			l: i,
+			r: h,
+		}
+		pairs = append(pairs, pair)
+
+	}
+	return pairs
+}
