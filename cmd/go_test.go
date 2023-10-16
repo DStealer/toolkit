@@ -791,8 +791,8 @@ func TestBatchUpdate(t *testing.T) {
 	hid, err := result.GetIntByName(0, "Hid")
 	cobra.CheckErr(err)
 	fmt.Println(lid, hid)
-	for _, x := range StepRange(lid, hid, 100) {
-		fmt.Println(x)
+	for _, rng := range StepRange(lid, hid, 100) {
+		fmt.Println(rng)
 	}
 
 }
@@ -804,7 +804,7 @@ type Pair struct {
 
 func StepRange(lid, rid, step int64) []Pair {
 	pairs := make([]Pair, 0, 16)
-	if lid > rid || step < 0 {
+	if lid >= rid || step < 0 {
 		return pairs
 	}
 
