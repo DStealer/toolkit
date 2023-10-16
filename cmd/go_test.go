@@ -806,11 +806,9 @@ func StepRange(lid, hid, step int64) []Pair {
 	}
 
 	for i := lid; i <= hid; i = i + step {
-		h := lid
+		h := hid
 		if i+step <= hid {
 			h = i + step
-		} else {
-			h = hid
 		}
 		pair := Pair{
 			l: i,
