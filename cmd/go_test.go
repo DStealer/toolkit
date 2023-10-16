@@ -770,7 +770,7 @@ func TestBatchUpdate(t *testing.T) {
 	update := "update `gwtrip-advertisement`.b2c_faq_userrecord set loginTime=loginTime, enc_mobile=TO_BASE64(AES_ENCRYPT(mobile,'key')) ,gmt_modified=NOW() where id between ? and ?"
 	var sid int64 = 0
 	var eid int64 = 0
-	if eid <= sid {
+	if eid < sid {
 		cobra.CheckErr("数据边界错误")
 	}
 
