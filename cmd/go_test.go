@@ -767,7 +767,7 @@ func TestFixUpPackageLock(t *testing.T) {
 
 func TestBatchUpdate(t *testing.T) {
 	table := "`gwtrip-advertisement`.user_tp_content"
-	statement := "statement `gwtrip-advertisement`.b2c_faq_userrecord set loginTime=loginTime, enc_mobile=TO_BASE64(AES_ENCRYPT(mobile,'key')) ,gmt_modified=NOW() where id between ? and ?"
+	statement := "update `gwtrip-advertisement`.b2c_faq_userrecord set loginTime=loginTime, enc_mobile=TO_BASE64(AES_ENCRYPT(mobile,'key')) ,gmt_modified=NOW() where id between ? and ?"
 	var batchSize int64 = 250
 	var sid int64 = 0
 	var eid int64 = 1000
