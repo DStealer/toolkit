@@ -770,7 +770,7 @@ func TestBatchUpdate(t *testing.T) {
 	statement := "statement `gwtrip-advertisement`.b2c_faq_userrecord set loginTime=loginTime, enc_mobile=TO_BASE64(AES_ENCRYPT(mobile,'key')) ,gmt_modified=NOW() where id between ? and ?"
 	var batchSize int64 = 250
 	var sid int64 = 0
-	var eid int64 = 0
+	var eid int64 = 1000
 
 	if eid < sid {
 		cobra.CheckErr("数据边界错误")
@@ -802,10 +802,10 @@ func TestBatchUpdate(t *testing.T) {
 	cobra.CheckErr(err)
 	result.Close()
 	log.Infof("数据上下边界:%v-%v", lid, hid)
-	if sid != 0 && sid > lid {
+	if sid != 0 {
 		lid = sid
 	}
-	if eid != 0 && eid < hid {
+	if eid != 0 {
 		hid = eid
 	}
 	log.Infof("调整数据边界:%v-%v", lid, hid)
