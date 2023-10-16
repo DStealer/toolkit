@@ -804,7 +804,7 @@ type Pair struct {
 
 func StepRange(lid, rid, step int64) []Pair {
 	pairs := make([]Pair, 0, 16)
-	if lid >= rid || step < 0 {
+	if lid >= rid || step <= 0 {
 		return pairs
 	}
 
