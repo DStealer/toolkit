@@ -768,8 +768,10 @@ func TestFixUpPackageLock(t *testing.T) {
 func TestBatchUpdate(t *testing.T) {
 	table := "`gwtrip-advertisement`.user_tp_content"
 	update := "update `gwtrip-advertisement`.b2c_faq_userrecord set loginTime=loginTime, enc_mobile=TO_BASE64(AES_ENCRYPT(mobile,'key')) ,gmt_modified=NOW() where id between ? and ?"
+	var batchSize int64 = 250
 	var sid int64 = 0
 	var eid int64 = 0
+
 	if eid < sid {
 		cobra.CheckErr("数据边界错误")
 	}
@@ -806,7 +808,7 @@ func TestBatchUpdate(t *testing.T) {
 	}
 	log.Infof("调整数据边界:%v-%v", lid, hid)
 
-	for _, sr := range StepRange(1, 10000001, 250) {
+	for _, sr := range StepRange(lid, hid, batchSize) {
 		result, err = conn.Execute(update, sr.l, sr.r)
 		cobra.CheckErr(err)
 		log.Infof("执行:%v-%v,更新:%v条", sr.l, sr.r, result.AffectedRows)
