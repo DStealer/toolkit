@@ -767,7 +767,7 @@ func TestFixUpPackageLock(t *testing.T) {
 
 func TestBatchUpdate(t *testing.T) {
 	table := "`gwtrip-advertisement`.user_tp_content"
-	update := "update `gwtrip-advertisement`.b2c_faq_userrecord set loginTime=loginTime, enc_mobile=TO_BASE64(AES_ENCRYPT(mobile,'key')) ,gmt_modified=NOW() where id between ? and ?"
+	statement := "statement `gwtrip-advertisement`.b2c_faq_userrecord set loginTime=loginTime, enc_mobile=TO_BASE64(AES_ENCRYPT(mobile,'key')) ,gmt_modified=NOW() where id between ? and ?"
 	var batchSize int64 = 250
 	var sid int64 = 0
 	var eid int64 = 0
@@ -779,6 +779,8 @@ func TestBatchUpdate(t *testing.T) {
 	conn, err := mysqlclient.Connect("192.168.122.1:3306", "root", "root@123", "information_schema")
 	cobra.CheckErr(err)
 	defer conn.Close()
+
+	log.Infof("开始处理:%s", statement)
 
 	result, err := conn.Execute(fmt.Sprintf("SHOW KEYS FROM %s WHERE Key_name = 'PRIMARY' ", table))
 	cobra.CheckErr(err)
@@ -809,11 +811,12 @@ func TestBatchUpdate(t *testing.T) {
 	log.Infof("调整数据边界:%v-%v", lid, hid)
 
 	for _, sr := range StepRange(lid, hid, batchSize) {
-		result, err = conn.Execute(update, sr.l, sr.r)
+		result, err = conn.Execute(statement, sr.l, sr.r)
 		cobra.CheckErr(err)
 		log.Infof("执行:%v-%v,更新:%v条", sr.l, sr.r, result.AffectedRows)
 		result.Close()
 	}
+	log.Infof("结束处理:%s", statement)
 
 }
 
