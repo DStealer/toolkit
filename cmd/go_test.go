@@ -763,5 +763,33 @@ func TestFixUpPackageLock(t *testing.T) {
 	cobra.CheckErr(err)
 	err = os.WriteFile(filePath, marshal, 0x644)
 	cobra.CheckErr(err)
+}
+
+func TestBatchUpdate(t *testing.T) {
+	conn, err := mysqlclient.Connect("192.168.122.1:3306", "root", "root@123", "information_schema")
+	cobra.CheckErr(err)
+	defer conn.Close()
+
+	table := "`gwtrip-advertisement`.user_tp_content"
+
+	result, err := conn.Execute(fmt.Sprintf("SHOW KEYS FROM %s WHERE Key_name = 'PRIMARY' ", table))
+	cobra.CheckErr(err)
+	defer result.Close()
+	if result.RowNumber() != 1 {
+		cobra.CheckErr("查询主键错误")
+	}
+	keyName, err := result.GetStringByName(0, "Column_name")
+	cobra.CheckErr(err)
+
+	result, err = conn.Execute(fmt.Sprintf("select min(%s) as Lid, max(%s) as Hid from %s", keyName, keyName, table))
+	cobra.CheckErr(err)
+	if result.RowNumber() != 1 {
+		cobra.CheckErr("查询主键边界错误")
+	}
+	lid, err := result.GetIntByName(0, "Lid")
+	cobra.CheckErr(err)
+	hid, err := result.GetIntByName(0, "Hid")
+	cobra.CheckErr(err)
+	fmt.Println(lid, hid)
 
 }
