@@ -1,6 +1,6 @@
-batchSize: 250
+batchSize: 10
 items:
-  - schema: "schema"
-    table: "11232"
-    updateSql: "select * from dual"
-    validateSql: "select * from dual"
+  - schema: "test"
+    table: "table_demo"
+    updateSql: "select * from `test`.table_demo where id between ? and ?"
+    validateSql: "select * from `test`.table_demo where id between ? and ?"
