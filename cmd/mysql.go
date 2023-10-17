@@ -154,7 +154,7 @@ func init() {
 				}
 				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
 			}
-			log.Infof("结束执行...")
+			log.Infof("结束执行")
 		},
 	}
 	cleansingCmd.AddCommand(cleansingUpdateCmd)
@@ -221,10 +221,10 @@ func init() {
 				}
 				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
 			}
-			log.Infof("结束执行...")
+			log.Infof("结束执行")
 		},
 	}
-	cleansingCmd.AddCommand(cleansingUpdateCmd)
+	cleansingCmd.AddCommand(cleansingValidateCmd)
 
 	mysqlCmd.AddCommand(cleansingCmd)
 }
