@@ -819,29 +819,3 @@ func TestBatchUpdate(t *testing.T) {
 	log.Infof("结束处理:%s", statement)
 
 }
-
-type Pair struct {
-	l int64
-	r int64
-}
-
-func StepRange(lid, rid, step int64) []Pair {
-	pairs := make([]Pair, 0, 16)
-	if lid >= rid || step <= 0 {
-		return pairs
-	}
-
-	for i := lid; i < rid; i = i + step {
-		h := rid
-		if i+step < rid {
-			h = i + step
-		}
-		pair := Pair{
-			l: i,
-			r: h,
-		}
-		pairs = append(pairs, pair)
-
-	}
-	return pairs
-}
