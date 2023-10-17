@@ -1,4 +1,4 @@
-batchSize: 10
+batchSize: 1000
 items:
   - schema: "test"
     table: "table_demo"
