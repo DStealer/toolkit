@@ -93,6 +93,7 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			conn, err := client.Connect(mysqlAddr, mysqlUsername, mysqlPassword, mysqlDatabase)
+			defer conn.Close()
 			cobra.CheckErr(err)
 			err = conn.Ping()
 			if err != nil {
@@ -103,21 +104,62 @@ func init() {
 			var mysqlCleansingConfig MysqlCleansingConfig
 			err = yaml.Unmarshal(file, &mysqlCleansingConfig)
 			cobra.CheckErr(err)
-			log.Infof("读取文件:%v", mysqlCleansingConfig)
+			log.Infof("开始校验文件...")
 			mysqlCleansingConfig.validate()
+			log.Infof("开始执行程序...")
+			for _, item := range mysqlCleansingConfig.Items {
+				log.Infof("开始处理:%s %s %s ", item.Schema, item.Table, item.UpdateSql)
 
+				result, err := conn.Execute(fmt.Sprintf("SHOW KEYS FROM `%s`.%s WHERE Key_name = 'PRIMARY' ", item.Schema, item.Table))
+				cobra.CheckErr(err)
+				if result.RowNumber() != 1 {
+					cobra.CheckErr("查询主键错误")
+				}
+				keyName, err := result.GetStringByName(0, "Column_name")
+				cobra.CheckErr(err)
+				result.Close()
+				result, err = conn.Execute(fmt.Sprintf("select min(%s) as Lid, max(%s) as Hid from `%s`.%s", keyName, keyName, item.Schema, item.Table))
+				cobra.CheckErr(err)
+				if result.RowNumber() != 1 {
+					cobra.CheckErr("查询主键边界错误")
+				}
+				lowId, err := result.GetIntByName(0, "Lid")
+				cobra.CheckErr(err)
+				highId, err := result.GetIntByName(0, "Hid")
+				cobra.CheckErr(err)
+				result.Close()
+				log.Infof("查询当前数据上下边界:%v-%v", lowId, highId)
+				if item.StartId != 0 || item.EndId != 0 {
+					lowId = If(item.StartId == 0, lowId, item.StartId).(int64)
+					highId = If(item.EndId == 0, highId, item.EndId).(int64)
+					log.Infof("调整数据边界:%v-%v", lowId, highId)
+				}
+				generator, err := NewPairGenerator(lowId, highId, mysqlCleansingConfig.BatchSize)
+				cobra.CheckErr(err)
+				for {
+					next, left, right := generator.NextBoundary()
+					if !next {
+						break
+					}
+					result, err = conn.Execute(item.UpdateSql, left, right)
+					cobra.CheckErr(err)
+					log.Infof("执行:%v-%v,更新:%v条", left, right, result.AffectedRows)
+					result.Close()
+				}
+				log.Infof("结束处理:%s %s %s ", item.Schema, item.Table, item.UpdateSql)
+			}
 		},
 	}
 	mysqlCmd.AddCommand(cleansingCmd)
 }
 
 type MysqlCleansingConfig struct {
-	DefaultBatchSize int64                `yaml:"defaultBatchSize"`
-	Items            []MysqlCleansingItem `yaml:"items"`
+	BatchSize int64                `yaml:"batchSize"`
+	Items     []MysqlCleansingItem `yaml:"items"`
 }
 
 func (c MysqlCleansingConfig) validate() {
-	if c.DefaultBatchSize <= 0 {
+	if c.BatchSize <= 0 {
 		cobra.CheckErr("defaultBatchSize配置错误")
 	}
 	for _, item := range c.Items {
@@ -130,7 +172,6 @@ type MysqlCleansingItem struct {
 	Table       string `yaml:"table"`
 	UpdateSql   string `yaml:"updateSql"`
 	ValidateSql string `yaml:"validateSql"`
-	BatchSize   int64  `yaml:"batchSize"`
 	StartId     int64  `yaml:"startId"`
 	EndId       int64  `yaml:"endId"`
 }
@@ -141,9 +182,6 @@ func (c MysqlCleansingItem) validate() {
 	}
 	if c.Table == "" {
 		cobra.CheckErr("table配置错误")
-	}
-	if c.BatchSize < 0 {
-		cobra.CheckErr("BatchSize配置错误")
 	}
 	if c.StartId < 0 {
 		cobra.CheckErr("StartId配置错误")

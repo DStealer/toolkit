@@ -242,3 +242,10 @@ func NewPairGenerator(left int64, right int64, step int64) (PairGenerator, error
 	}
 	return &defaultPairGenerator{lindex: left, left: left, rindex: right, right: right, step: step}, nil
 }
+
+func If(condition bool, trueVal, falseVal interface{}) interface{} {
+	if condition {
+		return trueVal
+	}
+	return falseVal
+}
