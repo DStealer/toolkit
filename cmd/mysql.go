@@ -159,6 +159,73 @@ func init() {
 	}
 	cleansingCmd.AddCommand(cleansingUpdateCmd)
 
+	cleansingValidateCmd := &cobra.Command{
+		Use:   "validate configfile",
+		Short: "mysql数据清洗工具-校验",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			conn, err := client.Connect(mysqlAddr, mysqlUsername, mysqlPassword, mysqlDatabase)
+			defer conn.Close()
+			cobra.CheckErr(err)
+			err = conn.Ping()
+			if err != nil {
+				log.Fatalln("数据库连接失败", err)
+			}
+			file, err := os.ReadFile(args[0])
+			cobra.CheckErr(err)
+			var mysqlCleansingConfig MysqlCleansingConfig
+			err = yaml.Unmarshal(file, &mysqlCleansingConfig)
+			cobra.CheckErr(err)
+			log.Infof("开始校验文件")
+			mysqlCleansingConfig.validate()
+			log.Infof("开始执行程序")
+			for index, item := range mysqlCleansingConfig.Items {
+				log.Infof("开始处理%d/%d条目%s.%s", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table)
+				result, err := conn.Execute(fmt.Sprintf("SHOW KEYS FROM `%s`.%s WHERE Key_name = 'PRIMARY' ", item.Schema, item.Table))
+				cobra.CheckErr(err)
+				if result.RowNumber() != 1 {
+					cobra.CheckErr("查询主键错误")
+				}
+				keyName, err := result.GetStringByName(0, "Column_name")
+				cobra.CheckErr(err)
+				result.Close()
+				result, err = conn.Execute(fmt.Sprintf("select min(%s) as Lid, max(%s) as Hid from `%s`.%s", keyName, keyName, item.Schema, item.Table))
+				cobra.CheckErr(err)
+				if result.RowNumber() != 1 {
+					cobra.CheckErr("查询主键边界错误")
+				}
+				lowId, err := result.GetIntByName(0, "Lid")
+				cobra.CheckErr(err)
+				highId, err := result.GetIntByName(0, "Hid")
+				cobra.CheckErr(err)
+				result.Close()
+				log.Infof("查询当前数据上下边界:%v-%v", lowId, highId)
+				if item.StartId != 0 || item.EndId != 0 {
+					lowId = If(item.StartId == 0, lowId, item.StartId).(int64)
+					highId = If(item.EndId == 0, highId, item.EndId).(int64)
+					log.Infof("调整数据边界:%v-%v", lowId, highId)
+				}
+				generator, err := NewPairGenerator(lowId, highId, mysqlCleansingConfig.BatchSize)
+				cobra.CheckErr(err)
+				var totalAffectedRows uint64 = 0
+				for {
+					next, left, right := generator.NextBoundary()
+					if !next {
+						break
+					}
+					result, err = conn.Execute(item.UpdateSql, left, right)
+					cobra.CheckErr(err)
+					log.Infof("执行:%v-%v,更新:%v条", left, right, result.AffectedRows)
+					totalAffectedRows = totalAffectedRows + result.AffectedRows
+					result.Close()
+				}
+				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
+			}
+			log.Infof("结束执行...")
+		},
+	}
+	cleansingCmd.AddCommand(cleansingUpdateCmd)
+
 	mysqlCmd.AddCommand(cleansingCmd)
 }
 
