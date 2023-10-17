@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/go-mysql-org/go-mysql/client"
+	_ "github.com/go-mysql-org/go-mysql/driver"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/pingcap/tidb/parser"
 	"github.com/siddontang/go-log/log"

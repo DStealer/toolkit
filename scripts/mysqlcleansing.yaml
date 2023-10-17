@@ -1,4 +1,4 @@
-defaultBatchSize: 250
+batchSize: 250
 items:
   - schema: "schema"
     table: "11232"
