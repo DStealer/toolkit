@@ -187,7 +187,7 @@ func (pg defaultPairGenerator) NextBoundary() (bool, int64, int64) {
 	}
 	lindex := pg.lindex
 
-	rindex := pg.lindex + pg.step - 1
+	rindex := pg.lindex + pg.step
 
 	if rindex > pg.rindex {
 		rindex = pg.rindex
