@@ -124,7 +124,7 @@ func init() {
 			log.Infof("开始执行程序")
 			for index, item := range mysqlCleansingConfig.Items {
 				log.Infof("开始处理%d/%d条目%s.%s", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table)
-				log.Infof("语句:%s", item.UpdateSql)
+				log.Info("语句:%s", item.UpdateSql)
 				result, err := conn.Execute(fmt.Sprintf("SHOW KEYS FROM `%s`.%s WHERE Key_name = 'PRIMARY' ", item.Schema, item.Table))
 				cobra.CheckErr(err)
 				if result.RowNumber() != 1 {
@@ -199,7 +199,7 @@ func init() {
 			log.Infof("开始执行程序")
 			for index, item := range mysqlCleansingConfig.Items {
 				log.Infof("开始处理%d/%d条目%s.%s", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table)
-				log.Infof("语句:%s", item.ValidateSql)
+				log.Info("语句:%s", item.ValidateSql)
 				result, err := conn.Execute(fmt.Sprintf("SHOW KEYS FROM `%s`.%s WHERE Key_name = 'PRIMARY' ", item.Schema, item.Table))
 				cobra.CheckErr(err)
 				if result.RowNumber() != 1 {
