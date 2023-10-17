@@ -162,10 +162,11 @@ type PairGenerator interface {
 }
 
 type defaultPairGenerator struct {
-	index int64
-	left  int64
-	right int64
-	step  int64
+	lindex int64
+	left   int64
+	rindex int64
+	right  int64
+	step   int64
 }
 
 func (pg defaultPairGenerator) Next() bool {
@@ -210,5 +211,5 @@ func NewPairGenerator(left int64, right int64, step int64) (PairGenerator, error
 	if step < 1 {
 		return nil, errors.New("步长错误")
 	}
-	return defaultPairGenerator{index: left, left: left, right: right, step: step}, nil
+	return defaultPairGenerator{lindex: left, left: left, rindex: right, right: right, step: step}, nil
 }
