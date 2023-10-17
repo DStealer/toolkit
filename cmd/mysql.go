@@ -26,7 +26,7 @@ var (
 )
 
 func init() {
-	mysqlCmd.PersistentFlags().StringVar(&mysqlAddr, "addr", redisServer, "服务地址数据库地址,ip:port或unix socket")
+	mysqlCmd.PersistentFlags().StringVar(&mysqlAddr, "addr", mysqlAddr, "服务地址数据库地址,ip:port或unix socket")
 	mysqlCmd.PersistentFlags().StringVar(&mysqlUsername, "username", mysqlUsername, "用户名")
 	mysqlCmd.PersistentFlags().StringVar(&mysqlPassword, "password", mysqlPassword, "密码")
 	mysqlCmd.PersistentFlags().StringVar(&mysqlDatabase, "database", mysqlDatabase, "数据库名称")
