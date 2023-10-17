@@ -193,7 +193,7 @@ func (pg defaultPairGenerator) NextBoundary() (bool, int64, int64) {
 		rindex = pg.rindex
 	}
 
-	pg.lindex = rindex
+	pg.lindex = rindex + 1
 
 	return true, lindex, rindex
 }
