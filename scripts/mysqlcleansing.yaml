@@ -1,4 +1,6 @@
 defaultBatchSize: 250
 items:
-  - schema: `test`
-    table: table
+  - schema: "schema"
+    table: "11232"
+    updateSql: "select * from dual"
+    validateSql: "select * from dual"

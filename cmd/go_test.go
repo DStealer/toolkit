@@ -24,6 +24,7 @@ import (
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 	"io"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -838,4 +839,14 @@ func TestNewPairGenerator(t *testing.T) {
 		}
 		log.Infof("结束处理:%v - %v", left, right)
 	}
+}
+
+func TestYaml(t *testing.T) {
+	file, err := os.ReadFile("/data/Workspaces/GoProjects/tk/scripts/mysqlcleansing.yaml")
+	cobra.CheckErr(err)
+	var mysqlCleansingConfig MysqlCleansingConfig
+	err = yaml.Unmarshal(file, &mysqlCleansingConfig)
+	cobra.CheckErr(err)
+	log.Infof("读取文件:%v", mysqlCleansingConfig)
+	mysqlCleansingConfig.validate()
 }
