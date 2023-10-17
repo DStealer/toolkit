@@ -7,6 +7,7 @@ import (
 	"crypto/md5"
 	"embed"
 	"encoding/hex"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net"
@@ -151,14 +152,23 @@ func GetLocalIP() string {
 	return ""
 }
 
-// 处理步长数据
-type PairGenerator struct {
+type PairGenerator interface {
+	Next() bool
+	GetLeft() int64
+	GetRight() int64
+	NextBoundary() bool
+	GetLeftBoundary() int64
+	GetRightBoundary() int64
+}
+
+type defaultPairGenerator struct {
+	index int64
 	left  int64
 	right int64
 	step  int64
 }
 
-func (pg PairGenerator) Next() bool {
+func (pg defaultPairGenerator) Next() bool {
 	if pg.left > pg.right {
 		pg.left = pg.left + pg.step
 		if pg.left > pg.right {
@@ -169,14 +179,14 @@ func (pg PairGenerator) Next() bool {
 		return false
 	}
 }
-func (pg PairGenerator) GetLeft() int64 {
+func (pg defaultPairGenerator) GetLeft() int64 {
 	return pg.left
 }
-func (pg PairGenerator) GetRight() int64 {
+func (pg defaultPairGenerator) GetRight() int64 {
 	return pg.right
 }
 
-func (pg PairGenerator) NextBoundary() bool {
+func (pg defaultPairGenerator) NextBoundary() bool {
 	if pg.left > pg.right {
 		pg.left = pg.left + pg.step
 		return true
@@ -185,9 +195,20 @@ func (pg PairGenerator) NextBoundary() bool {
 	}
 }
 
-func (pg PairGenerator) GetLeftBoundary() int64 {
+func (pg defaultPairGenerator) GetLeftBoundary() int64 {
 	return pg.left
 }
-func (pg PairGenerator) GetRightBoundary() int64 {
+func (pg defaultPairGenerator) GetRightBoundary() int64 {
 	return pg.right
+}
+
+// 新建步长处数据器
+func NewPairGenerator(left int64, right int64, step int64) (PairGenerator, error) {
+	if left > right {
+		return nil, errors.New("边界错误")
+	}
+	if step < 1 {
+		return nil, errors.New("步长错误")
+	}
+	return defaultPairGenerator{index: left, left: left, right: right, step: step}, nil
 }
