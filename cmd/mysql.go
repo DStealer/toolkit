@@ -216,8 +216,21 @@ func init() {
 					result, err = conn.Execute(item.ValidateSql, left, right)
 					cobra.CheckErr(err)
 					log.Infof("执行:%v-%v,记录:%v条", left, right, result.AffectedRows)
-
 					totalAffectedRows = totalAffectedRows + result.AffectedRows
+
+					for _, row := range result.Values {
+						values := make([]string, len(result.Fields))
+						for index, val := range row {
+							if val.Type == mysql.FieldValueTypeString {
+								values[index] = fmt.Sprintf("'%s'", string(val.AsString()))
+							} else if val.Type == mysql.FieldValueTypeNull {
+								values[index] = "NULL"
+							} else {
+								values[index] = fmt.Sprintf("%v", val.Value())
+							}
+						}
+						fmt.Println(values)
+					}
 					result.Close()
 				}
 				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
