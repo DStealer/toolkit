@@ -267,7 +267,7 @@ func (c MysqlCleansingItem) validate() {
 		cobra.CheckErr("StartId配置错误")
 	}
 	if c.EndId < 0 {
-		cobra.CheckErr("endId配置错误")
+		cobra.CheckErr("EndId配置错误")
 	}
 	if c.UpdateSql != "" {
 		p := parser.New()
