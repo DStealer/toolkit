@@ -246,8 +246,8 @@ func init() {
 }
 
 type MysqlCleansingConfig struct {
-	BatchSize int64                `yaml:"batchSize"`
-	Items     []MysqlCleansingItem `yaml:"items"`
+	BatchSize int64                `yaml:"batchSize" json:"batchSize"`
+	Items     []MysqlCleansingItem `yaml:"items" json:"items"`
 }
 
 func (c MysqlCleansingConfig) validate() {
@@ -263,12 +263,12 @@ func (c MysqlCleansingConfig) validate() {
 }
 
 type MysqlCleansingItem struct {
-	Schema      string `yaml:"schema"`
-	Table       string `yaml:"table"`
-	UpdateSql   string `yaml:"updateSql"`
-	ValidateSql string `yaml:"validateSql"`
-	StartId     int64  `yaml:"startId"`
-	EndId       int64  `yaml:"endId"`
+	Schema      string `yaml:"schema" json:"schema"`
+	Table       string `yaml:"table" json:"table"`
+	UpdateSql   string `yaml:"updateSql" json:"updateSql"`
+	ValidateSql string `yaml:"validateSql" json:"validateSql"`
+	StartId     int64  `yaml:"startId" json:"startId"`
+	EndId       int64  `yaml:"endId" json:"endId"`
 }
 
 func (c MysqlCleansingItem) validate() {
