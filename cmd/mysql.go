@@ -109,11 +109,11 @@ func init() {
 			var mysqlCleansingConfig MysqlCleansingConfig
 			err = yaml.Unmarshal(file, &mysqlCleansingConfig)
 			cobra.CheckErr(err)
-			log.Infof("开始校验文件...")
+			log.Infof("开始校验文件")
 			mysqlCleansingConfig.validate()
-			log.Infof("开始执行程序...")
+			log.Infof("开始执行程序")
 			for index, item := range mysqlCleansingConfig.Items {
-				log.Infof("开始处理%d/%d条目%s.%s", index, len(mysqlCleansingConfig.Items), item.Schema, item.Table)
+				log.Infof("开始处理%d/%d条目%s.%s", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table)
 				result, err := conn.Execute(fmt.Sprintf("SHOW KEYS FROM `%s`.%s WHERE Key_name = 'PRIMARY' ", item.Schema, item.Table))
 				cobra.CheckErr(err)
 				if result.RowNumber() != 1 {
@@ -152,8 +152,9 @@ func init() {
 					totalAffectedRows = totalAffectedRows + result.AffectedRows
 					result.Close()
 				}
-				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条", index, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
+				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
 			}
+			log.Infof("结束执行...")
 		},
 	}
 	cleansingCmd.AddCommand(cleansingUpdateCmd)
