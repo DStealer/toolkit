@@ -154,7 +154,9 @@ func GetLocalIP() string {
 
 type PairGenerator interface {
 	Next() (bool, int64, int64)
+	Pre() (bool, int64, int64)
 	NextBoundary() (bool, int64, int64)
+	PreBoundary() (bool, int64, int64)
 }
 
 type defaultPairGenerator struct {
@@ -180,6 +182,21 @@ func (pg *defaultPairGenerator) Next() (bool, int64, int64) {
 
 	return true, lindex, rindex
 }
+func (pg *defaultPairGenerator) Pre() (bool, int64, int64) {
+	if pg.lindex >= pg.rindex {
+		return false, 0, 0
+	}
+	rindex := pg.rindex
+
+	lindex := pg.rindex - pg.step
+
+	if lindex < pg.lindex {
+		lindex = pg.lindex
+	}
+	pg.rindex = lindex
+
+	return true, lindex, rindex
+}
 
 func (pg *defaultPairGenerator) NextBoundary() (bool, int64, int64) {
 	if pg.lindex > pg.rindex {
@@ -194,6 +211,23 @@ func (pg *defaultPairGenerator) NextBoundary() (bool, int64, int64) {
 	}
 
 	pg.lindex = rindex + 1
+
+	return true, lindex, rindex
+}
+
+func (pg *defaultPairGenerator) PreBoundary() (bool, int64, int64) {
+	if pg.lindex > pg.rindex {
+		return false, 0, 0
+	}
+	rindex := pg.rindex
+
+	lindex := pg.rindex - pg.step + 1
+
+	if lindex < pg.lindex {
+		lindex = pg.lindex
+	}
+
+	pg.rindex = rindex - 1
 
 	return true, lindex, rindex
 }
