@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-mysql-org/go-mysql/client"
 	"github.com/go-mysql-org/go-mysql/mysql"
+	"github.com/pingcap/tidb/parser"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	"strings"
@@ -105,12 +106,49 @@ type MysqlCleansingConfig struct {
 	Items            []MysqlCleansingItem `yaml:"items"`
 }
 
+func (c MysqlCleansingConfig) validate() {
+	if c.DefaultBatchSize <= 0 {
+		cobra.CheckErr("defaultBatchSize配置错误")
+	}
+	for _, item := range c.Items {
+		item.validate()
+	}
+}
+
 type MysqlCleansingItem struct {
 	Schema      string `yaml:"schema"`
 	Table       string `yaml:"table"`
 	UpdateSql   string `yaml:"updateSql"`
 	ValidateSql string `yaml:"validateSql"`
 	BatchSize   int64  `yaml:"batchSize"`
-	AjlId       int64  `yaml:"ajlId"`
-	Ajhid       int64  `yaml:"ajhid"`
+	StartId     int64  `yaml:"startId"`
+	EndId       int64  `yaml:"endId"`
+}
+
+func (c MysqlCleansingItem) validate() {
+	if c.Schema == "" {
+		cobra.CheckErr("schema配置错误")
+	}
+	if c.Table == "" {
+		cobra.CheckErr("table配置错误")
+	}
+	if c.BatchSize < 0 {
+		cobra.CheckErr("BatchSize配置错误")
+	}
+	if c.StartId < 0 {
+		cobra.CheckErr("StartId配置错误")
+	}
+	if c.EndId < 0 {
+		cobra.CheckErr("endId配置错误")
+	}
+	if c.UpdateSql != "" {
+		p := parser.New()
+		_, _, err := p.Parse(c.UpdateSql, "", "")
+		cobra.CheckErr(err)
+	}
+	if c.ValidateSql != "" {
+		p := parser.New()
+		_, _, err := p.Parse(c.ValidateSql, "", "")
+		cobra.CheckErr(err)
+	}
 }
