@@ -252,7 +252,7 @@ func init() {
 					}
 					result.Close()
 				}
-				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
+				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条\n", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
 			}
 			log.Infof("结束执行")
 		},
