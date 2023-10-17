@@ -181,7 +181,7 @@ func (pg defaultPairGenerator) Next() (bool, int64, int64) {
 	return true, lindex, rindex
 }
 
-func (pg *defaultPairGenerator) NextBoundary() (bool, int64, int64) {
+func (pg defaultPairGenerator) NextBoundary() (bool, int64, int64) {
 	if pg.lindex > pg.rindex {
 		return false, 0, 0
 	}
