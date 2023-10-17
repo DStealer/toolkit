@@ -826,3 +826,16 @@ func TestBatchUpdate(t *testing.T) {
 	log.Infof("结束处理:%s", statement)
 
 }
+
+func TestNewPairGenerator(t *testing.T) {
+	generator, err := NewPairGenerator(0, 800, 10)
+	cobra.CheckErr(err)
+
+	for {
+		next, left, right := generator.NextBoundary()
+		if !next {
+			break
+		}
+		log.Infof("结束处理:%v - %v", left, right)
+	}
+}
