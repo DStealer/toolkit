@@ -151,28 +151,40 @@ func GetLocalIP() string {
 	return ""
 }
 
-type Pair struct {
-	l int64
-	r int64
+// 处理步长数据
+type PairGenerator struct {
+	left  int64
+	right int64
+	step  int64
 }
 
-func StepRange(lid, rid, step int64) []Pair {
-	pairs := make([]Pair, 0, 16)
-	if lid >= rid || step <= 0 {
-		return pairs
+func (pg PairGenerator) Next() bool {
+	if pg.left > pg.right {
+		pg.left = pg.left + pg.step
+		return true
+	} else {
+		return false
 	}
+}
+func (pg PairGenerator) GetLeft() int64 {
+	return pg.left
+}
+func (pg PairGenerator) GetRight() int64 {
+	return pg.right
+}
 
-	for i := lid; i < rid; i = i + step {
-		h := rid
-		if i+step < rid {
-			h = i + step
-		}
-		pair := Pair{
-			l: i,
-			r: h,
-		}
-		pairs = append(pairs, pair)
-
+func (pg PairGenerator) NextBoundary() bool {
+	if pg.left > pg.right {
+		pg.left = pg.left + pg.step
+		return true
+	} else {
+		return false
 	}
-	return pairs
+}
+
+func (pg PairGenerator) GetLeftBoundary() int64 {
+	return pg.left
+}
+func (pg PairGenerator) GetRightBoundary() int64 {
+	return pg.right
 }
