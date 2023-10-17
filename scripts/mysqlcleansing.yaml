@@ -1,0 +1,4 @@
+defaultBatchSize: 250
+items:
+  - schema: `test`
+    table: table

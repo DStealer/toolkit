@@ -99,3 +99,18 @@ func init() {
 	}
 	mysqlCmd.AddCommand(cleansingCmd)
 }
+
+type MysqlCleansingConfig struct {
+	DefaultBatchSize int64                `yaml:"defaultBatchSize"`
+	Items            []MysqlCleansingItem `yaml:"items"`
+}
+
+type MysqlCleansingItem struct {
+	Schema      string `yaml:"schema"`
+	Table       string `yaml:"table"`
+	UpdateSql   string `yaml:"updateSql"`
+	ValidateSql string `yaml:"validateSql"`
+	BatchSize   int64  `yaml:"batchSize"`
+	AjlId       int64  `yaml:"ajlId"`
+	Ajhid       int64  `yaml:"ajhid"`
+}
