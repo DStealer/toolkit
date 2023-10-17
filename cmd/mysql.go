@@ -6,6 +6,7 @@ import (
 	_ "github.com/go-mysql-org/go-mysql/driver"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/pingcap/tidb/parser"
+	_ "github.com/pingcap/tidb/parser/test_driver"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
