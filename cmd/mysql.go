@@ -89,7 +89,7 @@ func init() {
 
 	cleansingCmd := &cobra.Command{
 		Use:   "cleansing subcommand [args]",
-		Short: "mysql数据清洗工具-更新",
+		Short: "mysql数据清洗工具",
 	}
 
 	cleansingUpdateCmd := &cobra.Command{
