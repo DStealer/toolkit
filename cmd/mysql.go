@@ -85,7 +85,7 @@ func init() {
 	mysqlCmd.AddCommand(dumpCmd)
 
 	cleansingCmd := &cobra.Command{
-		Use:   "cleansing [args] table",
+		Use:   "cleansing [args]",
 		Short: "mysql数据清洗工具",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
