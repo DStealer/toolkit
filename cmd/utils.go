@@ -165,7 +165,7 @@ type defaultPairGenerator struct {
 	step   int64
 }
 
-func (pg defaultPairGenerator) Next() (bool, int64, int64) {
+func (pg *defaultPairGenerator) Next() (bool, int64, int64) {
 	if pg.lindex >= pg.rindex {
 		return false, 0, 0
 	}
@@ -181,7 +181,7 @@ func (pg defaultPairGenerator) Next() (bool, int64, int64) {
 	return true, lindex, rindex
 }
 
-func (pg defaultPairGenerator) NextBoundary() (bool, int64, int64) {
+func (pg *defaultPairGenerator) NextBoundary() (bool, int64, int64) {
 	if pg.lindex > pg.rindex {
 		return false, 0, 0
 	}
@@ -206,5 +206,5 @@ func NewPairGenerator(left int64, right int64, step int64) (PairGenerator, error
 	if step < 1 {
 		return nil, errors.New("步长错误")
 	}
-	return defaultPairGenerator{lindex: left, left: left, rindex: right, right: right, step: step}, nil
+	return &defaultPairGenerator{lindex: left, left: left, rindex: right, right: right, step: step}, nil
 }
