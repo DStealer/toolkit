@@ -136,6 +136,7 @@ func init() {
 				}
 				generator, err := NewPairGenerator(lowId, highId, mysqlCleansingConfig.BatchSize)
 				cobra.CheckErr(err)
+				var totalAffectedRows uint64 = 0
 				for {
 					next, left, right := generator.NextBoundary()
 					if !next {
@@ -144,9 +145,10 @@ func init() {
 					result, err = conn.Execute(item.UpdateSql, left, right)
 					cobra.CheckErr(err)
 					log.Infof("执行:%v-%v,更新:%v条", left, right, result.AffectedRows)
+					totalAffectedRows = totalAffectedRows + result.AffectedRows
 					result.Close()
 				}
-				log.Infof("结束处理:%s %s %s ", item.Schema, item.Table, item.UpdateSql)
+				log.Infof("结束处理:%s %s %s 处理%v条", item.Schema, item.Table, item.UpdateSql, totalAffectedRows)
 			}
 		},
 	}
