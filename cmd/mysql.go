@@ -7,6 +7,8 @@ import (
 	"github.com/pingcap/tidb/parser"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
+	"os"
 	"strings"
 	"time"
 )
@@ -86,7 +88,7 @@ func init() {
 	mysqlCmd.AddCommand(dumpCmd)
 
 	cleansingCmd := &cobra.Command{
-		Use:   "cleansing [args]",
+		Use:   "cleansing config",
 		Short: "mysql数据清洗工具",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -96,6 +98,14 @@ func init() {
 			if err != nil {
 				log.Fatalln("数据库连接失败", err)
 			}
+			file, err := os.ReadFile(args[0])
+			cobra.CheckErr(err)
+			var mysqlCleansingConfig MysqlCleansingConfig
+			err = yaml.Unmarshal(file, &mysqlCleansingConfig)
+			cobra.CheckErr(err)
+			log.Infof("读取文件:%v", mysqlCleansingConfig)
+			mysqlCleansingConfig.validate()
+
 		},
 	}
 	mysqlCmd.AddCommand(cleansingCmd)
