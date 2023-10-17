@@ -161,6 +161,9 @@ type PairGenerator struct {
 func (pg PairGenerator) Next() bool {
 	if pg.left > pg.right {
 		pg.left = pg.left + pg.step
+		if pg.left > pg.right {
+			pg.left = pg.right
+		}
 		return true
 	} else {
 		return false
