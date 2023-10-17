@@ -88,8 +88,13 @@ func init() {
 	mysqlCmd.AddCommand(dumpCmd)
 
 	cleansingCmd := &cobra.Command{
-		Use:   "cleansing config",
-		Short: "mysql数据清洗工具",
+		Use:   "cleansing subcommand [args]",
+		Short: "mysql数据清洗工具-更新",
+	}
+
+	cleansingUpdateCmd := &cobra.Command{
+		Use:   "update configfile",
+		Short: "mysql数据清洗工具-更新",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			conn, err := client.Connect(mysqlAddr, mysqlUsername, mysqlPassword, mysqlDatabase)
@@ -151,6 +156,8 @@ func init() {
 			}
 		},
 	}
+	cleansingCmd.AddCommand(cleansingUpdateCmd)
+
 	mysqlCmd.AddCommand(cleansingCmd)
 }
 
