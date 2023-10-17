@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/go-mysql-org/go-mysql/client"
 	_ "github.com/go-mysql-org/go-mysql/driver"
@@ -109,8 +110,15 @@ func init() {
 			file, err := os.ReadFile(args[0])
 			cobra.CheckErr(err)
 			var mysqlCleansingConfig MysqlCleansingConfig
-			err = yaml.Unmarshal(file, &mysqlCleansingConfig)
-			cobra.CheckErr(err)
+			if strings.HasSuffix(args[0], ".yaml") {
+				err = yaml.Unmarshal(file, &mysqlCleansingConfig)
+				cobra.CheckErr(err)
+			} else if strings.HasSuffix(args[0], ".json") {
+				err = json.Unmarshal(file, &mysqlCleansingConfig)
+				cobra.CheckErr(err)
+			} else {
+				cobra.CheckErr("不支持的配置文件格式")
+			}
 			log.Infof("开始校验文件")
 			mysqlCleansingConfig.validate()
 			log.Infof("开始执行程序")
@@ -176,8 +184,15 @@ func init() {
 			file, err := os.ReadFile(args[0])
 			cobra.CheckErr(err)
 			var mysqlCleansingConfig MysqlCleansingConfig
-			err = yaml.Unmarshal(file, &mysqlCleansingConfig)
-			cobra.CheckErr(err)
+			if strings.HasSuffix(args[0], ".yaml") {
+				err = yaml.Unmarshal(file, &mysqlCleansingConfig)
+				cobra.CheckErr(err)
+			} else if strings.HasSuffix(args[0], ".json") {
+				err = json.Unmarshal(file, &mysqlCleansingConfig)
+				cobra.CheckErr(err)
+			} else {
+				cobra.CheckErr("不支持的配置文件格式")
+			}
 			log.Infof("开始校验文件")
 			mysqlCleansingConfig.validate()
 			log.Infof("开始执行程序")
