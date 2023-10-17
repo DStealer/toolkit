@@ -108,8 +108,7 @@ func init() {
 			mysqlCleansingConfig.validate()
 			log.Infof("开始执行程序...")
 			for _, item := range mysqlCleansingConfig.Items {
-				log.Infof("开始处理:%s %s %s ", item.Schema, item.Table, item.UpdateSql)
-
+				log.Infof("开始处理:%s %s %s ", item.Schema, item.Table)
 				result, err := conn.Execute(fmt.Sprintf("SHOW KEYS FROM `%s`.%s WHERE Key_name = 'PRIMARY' ", item.Schema, item.Table))
 				cobra.CheckErr(err)
 				if result.RowNumber() != 1 {
@@ -148,7 +147,7 @@ func init() {
 					totalAffectedRows = totalAffectedRows + result.AffectedRows
 					result.Close()
 				}
-				log.Infof("结束处理:%s %s %s 处理%v条", item.Schema, item.Table, item.UpdateSql, totalAffectedRows)
+				log.Infof("结束处理:%s %s %s 处理%v条", item.Schema, item.Table, totalAffectedRows)
 			}
 		},
 	}
@@ -162,7 +161,10 @@ type MysqlCleansingConfig struct {
 
 func (c MysqlCleansingConfig) validate() {
 	if c.BatchSize <= 0 {
-		cobra.CheckErr("defaultBatchSize配置错误")
+		cobra.CheckErr("batchSize配置错误")
+	}
+	if len(c.Items) == 0 {
+		cobra.CheckErr("请至少配置一条规则")
 	}
 	for _, item := range c.Items {
 		item.validate()
