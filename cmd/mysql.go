@@ -209,7 +209,7 @@ func init() {
 				}
 				generator, err := NewPairGenerator(lowId, highId, mysqlCleansingConfig.BatchSize)
 				cobra.CheckErr(err)
-				var totalAffectedRows int = 0
+				var totalAffectedRows = 0
 				for {
 					next, left, right := generator.NextBoundary()
 					if !next {
@@ -231,7 +231,7 @@ func init() {
 								values[index] = fmt.Sprintf("%v", val.Value())
 							}
 						}
-						fmt.Println(values)
+						fmt.Println("record:", values)
 					}
 					result.Close()
 				}

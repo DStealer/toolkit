@@ -4,3 +4,7 @@ items:
     table: "table_demo"
     updateSql: "select * from `test`.table_demo where id between ? and ?"
     validateSql: "select * from `test`.table_demo where id between ? and ?"
+  - schema: "test"
+    table: "table_demo"
+    updateSql: "select * from `test`.table_demo where id between ? and ?"
+    validateSql: "select * from `test`.table_demo where id between ? and ?"
