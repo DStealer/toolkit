@@ -209,7 +209,7 @@ func init() {
 				}
 				generator, err := NewPairGenerator(lowId, highId, mysqlCleansingConfig.BatchSize)
 				cobra.CheckErr(err)
-				var totalAffectedRows uint64 = 0
+				var totalAffectedRows int = 0
 				for {
 					next, left, right := generator.NextBoundary()
 					if !next {
@@ -217,8 +217,8 @@ func init() {
 					}
 					result, err = conn.Execute(item.ValidateSql, left, right)
 					cobra.CheckErr(err)
-					log.Infof("执行:%v-%v,记录:%v条", left, right, result.AffectedRows)
-					totalAffectedRows = totalAffectedRows + result.AffectedRows
+					log.Infof("执行:%v-%v,记录:%v条", left, right, result.RowNumber())
+					totalAffectedRows = totalAffectedRows + result.RowNumber()
 
 					for _, row := range result.Values {
 						values := make([]string, len(result.Fields))
