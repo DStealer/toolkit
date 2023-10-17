@@ -83,4 +83,19 @@ func init() {
 	}
 	dumpCmd.Flags().String("where", "", "查询条件")
 	mysqlCmd.AddCommand(dumpCmd)
+
+	cleansingCmd := &cobra.Command{
+		Use:   "cleansing [args] table",
+		Short: "mysql数据清洗工具",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			conn, err := client.Connect(mysqlAddr, mysqlUsername, mysqlPassword, mysqlDatabase)
+			cobra.CheckErr(err)
+			err = conn.Ping()
+			if err != nil {
+				log.Fatalln("数据库连接失败", err)
+			}
+		},
+	}
+	mysqlCmd.AddCommand(cleansingCmd)
 }
