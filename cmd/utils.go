@@ -153,12 +153,8 @@ func GetLocalIP() string {
 }
 
 type PairGenerator interface {
-	Next() bool
-	GetLeft() int64
-	GetRight() int64
-	NextBoundary() bool
-	GetLeftBoundary() int64
-	GetRightBoundary() int64
+	Next() (bool, int64, int64)
+	NextBoundary() (bool, int64, int64)
 }
 
 type defaultPairGenerator struct {
@@ -169,38 +165,37 @@ type defaultPairGenerator struct {
 	step   int64
 }
 
-func (pg defaultPairGenerator) Next() bool {
-	if pg.left > pg.right {
-		pg.left = pg.left + pg.step
-		if pg.left > pg.right {
-			pg.left = pg.right
-		}
-		return true
-	} else {
-		return false
+func (pg defaultPairGenerator) Next() (bool, int64, int64) {
+	if pg.lindex >= pg.rindex {
+		return false, 0, 0
 	}
-}
-func (pg defaultPairGenerator) GetLeft() int64 {
-	return pg.left
-}
-func (pg defaultPairGenerator) GetRight() int64 {
-	return pg.right
+	lindex := pg.lindex
+
+	rindex := pg.lindex + pg.step
+
+	if rindex > pg.rindex {
+		rindex = pg.rindex
+	}
+	pg.lindex = rindex
+
+	return true, lindex, rindex
 }
 
-func (pg defaultPairGenerator) NextBoundary() bool {
-	if pg.left > pg.right {
-		pg.left = pg.left + pg.step
-		return true
-	} else {
-		return false
+func (pg defaultPairGenerator) NextBoundary() (bool, int64, int64) {
+	if pg.lindex > pg.rindex {
+		return false, 0, 0
 	}
-}
+	lindex := pg.lindex
 
-func (pg defaultPairGenerator) GetLeftBoundary() int64 {
-	return pg.left
-}
-func (pg defaultPairGenerator) GetRightBoundary() int64 {
-	return pg.right
+	rindex := pg.lindex + pg.step - 1
+
+	if rindex > pg.rindex {
+		rindex = pg.rindex
+	}
+
+	pg.lindex = rindex
+
+	return true, lindex, rindex
 }
 
 // 新建步长处数据器
