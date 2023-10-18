@@ -179,7 +179,7 @@ func init() {
 					var right interface{}
 					if strings.Contains(keyType, "unsigned") {
 						if strings.Contains(keyType, "bigint") {
-							right = math.MaxUint64
+							cobra.CheckErr("不支持unsigned bigint")
 						} else if strings.Contains(keyType, "mediumint") {
 							right = 16777215
 						} else if strings.Contains(keyType, "smallint") {
@@ -313,7 +313,7 @@ func init() {
 					var right interface{}
 					if strings.Contains(keyType, "unsigned") {
 						if strings.Contains(keyType, "bigint") {
-							right = math.MaxUint64
+							cobra.CheckErr("不支持unsigned bigint")
 						} else if strings.Contains(keyType, "mediumint") {
 							right = 16777215
 						} else if strings.Contains(keyType, "smallint") {
