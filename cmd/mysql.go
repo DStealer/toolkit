@@ -176,7 +176,7 @@ func init() {
 				}
 				if item.EndId != 0 {
 					left := highId + 1
-					var right interface{}
+					var right int64
 					if strings.Contains(keyType, "unsigned") {
 						if strings.Contains(keyType, "bigint") {
 							cobra.CheckErr("不支持unsigned bigint")
@@ -310,7 +310,7 @@ func init() {
 				}
 				if item.EndId != 0 {
 					left := highId + 1
-					var right interface{}
+					var right int64
 					if strings.Contains(keyType, "unsigned") {
 						if strings.Contains(keyType, "bigint") {
 							cobra.CheckErr("不支持unsigned bigint")
