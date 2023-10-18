@@ -174,7 +174,7 @@ func init() {
 					totalAffectedRows = totalAffectedRows + result.AffectedRows
 					result.Close()
 				}
-				if item.EndId != 0 {
+				if item.EndId == 0 {
 					left := highId + 1
 					var right int64
 					if strings.Contains(keyType, "unsigned") {
@@ -308,7 +308,7 @@ func init() {
 					}
 					result.Close()
 				}
-				if item.EndId != 0 {
+				if item.EndId == 0 {
 					left := highId + 1
 					var right int64
 					if strings.Contains(keyType, "unsigned") {
