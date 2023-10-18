@@ -11,6 +11,7 @@ import (
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -125,22 +126,32 @@ func init() {
 			for index, item := range mysqlCleansingConfig.Items {
 				log.Infof("开始处理%d/%d条目%s.%s", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table)
 				log.Info("语句: ", item.UpdateSql)
-				result, err := conn.Execute(fmt.Sprintf("SHOW KEYS FROM `%s`.%s WHERE Key_name = 'PRIMARY' ", item.Schema, item.Table))
+				result, err := conn.Execute(fmt.Sprintf("desc `%s`.%s ", item.Schema, item.Table))
 				cobra.CheckErr(err)
-				if result.RowNumber() != 1 {
-					cobra.CheckErr("查询主键错误")
+				var keyName, keyType string
+				fieldNames := result.FieldNames
+				for _, val := range result.Values {
+					if "PRI" != string(val[fieldNames["Key"]].AsString()) {
+						continue
+					}
+					if keyName != "" || keyType != "" {
+						cobra.CheckErr("不支持联合主键")
+					}
+					keyType = string(val[fieldNames["Type"]].AsString())
+					if !strings.Contains(keyType, "int") {
+						cobra.CheckErr("不支持非整数类型主键")
+					}
+					keyName = string(val[fieldNames["Field"]].AsString())
 				}
-				keyName, err := result.GetStringByName(0, "Column_name")
-				cobra.CheckErr(err)
 				result.Close()
-				result, err = conn.Execute(fmt.Sprintf("select min(%s) as Lid, max(%s) as Hid from `%s`.%s", keyName, keyName, item.Schema, item.Table))
+				result, err = conn.Execute(fmt.Sprintf("select min(%s) as lid, max(%s) as hid from `%s`.%s", keyName, keyName, item.Schema, item.Table))
 				cobra.CheckErr(err)
 				if result.RowNumber() != 1 {
 					cobra.CheckErr("查询主键边界错误")
 				}
-				lowId, err := result.GetIntByName(0, "Lid")
+				lowId, err := result.GetIntByName(0, "lid")
 				cobra.CheckErr(err)
-				highId, err := result.GetIntByName(0, "Hid")
+				highId, err := result.GetIntByName(0, "hid")
 				cobra.CheckErr(err)
 				result.Close()
 				log.Infof("查询当前数据上下边界:%v-%v", lowId, highId)
@@ -163,6 +174,41 @@ func init() {
 					totalAffectedRows = totalAffectedRows + result.AffectedRows
 					result.Close()
 				}
+				if item.EndId != 0 {
+					left := highId + 1
+					var right interface{}
+					if strings.Contains(keyType, "unsigned") {
+						if strings.Contains(keyType, "bigint") {
+							right = math.MaxUint64
+						} else if strings.Contains(keyType, "mediumint") {
+							right = 16777215
+						} else if strings.Contains(keyType, "smallint") {
+							right = math.MaxUint16
+						} else if strings.Contains(keyType, "tinyint") {
+							right = math.MaxUint8
+						} else {
+							right = math.MaxUint32
+						}
+					} else {
+						if strings.Contains(keyType, "bigint") {
+							right = math.MaxInt64
+						} else if strings.Contains(keyType, "mediumint") {
+							right = 8388607
+						} else if strings.Contains(keyType, "smallint") {
+							right = math.MaxInt16
+						} else if strings.Contains(keyType, "tinyint") {
+							right = math.MaxInt8
+						} else {
+							right = math.MaxInt32
+						}
+					}
+					result, err = conn.Execute(item.UpdateSql, left, right)
+					cobra.CheckErr(err)
+					log.Infof("执行:%v-%v,记录:%v条", left, right, result.AffectedRows)
+					totalAffectedRows = totalAffectedRows + result.AffectedRows
+					result.Close()
+				}
+
 				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
 			}
 			log.Infof("结束执行")
@@ -200,13 +246,23 @@ func init() {
 			for index, item := range mysqlCleansingConfig.Items {
 				log.Infof("开始处理%d/%d条目%s.%s", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table)
 				log.Info("语句: ", item.ValidateSql)
-				result, err := conn.Execute(fmt.Sprintf("SHOW KEYS FROM `%s`.%s WHERE Key_name = 'PRIMARY' ", item.Schema, item.Table))
+				result, err := conn.Execute(fmt.Sprintf("desc `%s`.%s ", item.Schema, item.Table))
 				cobra.CheckErr(err)
-				if result.RowNumber() != 1 {
-					cobra.CheckErr("查询主键错误")
+				var keyName, keyType string
+				fieldNames := result.FieldNames
+				for _, val := range result.Values {
+					if "PRI" != string(val[fieldNames["Key"]].AsString()) {
+						continue
+					}
+					if keyName != "" || keyType != "" {
+						cobra.CheckErr("不支持联合主键")
+					}
+					keyType = string(val[fieldNames["Type"]].AsString())
+					if !strings.Contains(keyType, "int") {
+						cobra.CheckErr("不支持非整数类型主键")
+					}
+					keyName = string(val[fieldNames["Field"]].AsString())
 				}
-				keyName, err := result.GetStringByName(0, "Column_name")
-				cobra.CheckErr(err)
 				result.Close()
 				result, err = conn.Execute(fmt.Sprintf("select min(%s) as Lid, max(%s) as Hid from `%s`.%s", keyName, keyName, item.Schema, item.Table))
 				cobra.CheckErr(err)
@@ -250,6 +306,40 @@ func init() {
 						}
 						fmt.Println("record:", values)
 					}
+					result.Close()
+				}
+				if item.EndId != 0 {
+					left := highId + 1
+					var right interface{}
+					if strings.Contains(keyType, "unsigned") {
+						if strings.Contains(keyType, "bigint") {
+							right = math.MaxUint64
+						} else if strings.Contains(keyType, "mediumint") {
+							right = 16777215
+						} else if strings.Contains(keyType, "smallint") {
+							right = math.MaxUint16
+						} else if strings.Contains(keyType, "tinyint") {
+							right = math.MaxUint8
+						} else {
+							right = math.MaxUint32
+						}
+					} else {
+						if strings.Contains(keyType, "bigint") {
+							right = math.MaxInt64
+						} else if strings.Contains(keyType, "mediumint") {
+							right = 8388607
+						} else if strings.Contains(keyType, "smallint") {
+							right = math.MaxInt16
+						} else if strings.Contains(keyType, "tinyint") {
+							right = math.MaxInt8
+						} else {
+							right = math.MaxInt32
+						}
+					}
+					result, err = conn.Execute(item.UpdateSql, left, right)
+					cobra.CheckErr(err)
+					log.Infof("执行:%v-%v,记录:%v条", left, right, result.AffectedRows)
+					totalAffectedRows = totalAffectedRows + result.RowNumber()
 					result.Close()
 				}
 				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条\n", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
