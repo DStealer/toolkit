@@ -126,7 +126,10 @@ func init() {
 			for index, item := range mysqlCleansingConfig.Items {
 				log.Infof("开始处理%d/%d条目%s.%s", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table)
 				log.Info("语句: ", item.UpdateSql)
-				result, err := conn.Execute(fmt.Sprintf("desc `%s`.%s ", item.Schema, item.Table))
+				result, err := conn.Execute(fmt.Sprintf("use `%s`", item.Schema))
+				cobra.CheckErr(err)
+				result.Close()
+				result, err = conn.Execute(fmt.Sprintf("desc `%s`.%s ", item.Schema, item.Table))
 				cobra.CheckErr(err)
 				var keyName, keyType string
 				fieldNames := result.FieldNames
@@ -246,7 +249,10 @@ func init() {
 			for index, item := range mysqlCleansingConfig.Items {
 				log.Infof("开始处理%d/%d条目%s.%s", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table)
 				log.Info("语句: ", item.ValidateSql)
-				result, err := conn.Execute(fmt.Sprintf("desc `%s`.%s ", item.Schema, item.Table))
+				result, err := conn.Execute(fmt.Sprintf("use `%s`", item.Schema))
+				cobra.CheckErr(err)
+				result.Close()
+				result, err = conn.Execute(fmt.Sprintf("desc `%s`.%s ", item.Schema, item.Table))
 				cobra.CheckErr(err)
 				var keyName, keyType string
 				fieldNames := result.FieldNames
