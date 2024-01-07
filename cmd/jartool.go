@@ -41,17 +41,20 @@ func init() {
 			cobra.CheckErr(err)
 			log.Info("**********结果分析***********")
 			for _, project := range projects {
-				fmt.Printf("--[%s] [%s] [%s]\n", project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"))
+				fmt.Printf(
+					"--[%s] [%s] [%s]\n", project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"))
 				if jarLoc {
 					fmt.Printf("  %s\n", project.Path)
 				}
 				if jarLib {
 					for _, dep := range project.Deps {
 						if dep.Err == nil {
-							fmt.Println("  ", dep.Name, "\t", dep.ArtifactId, "\t", dep.Version, "\t", "")
+							fmt.Println(
+								"  ", dep.Name, "\t", dep.ArtifactId, "\t", dep.Version, "\t", dep.Md5Str, "\t",
+								dep.BuildTime.Format("2006-01-02 15:04:05"), "\t", "")
 						} else {
 							artifactId, version := parseArtifactIdAndVersion(dep.Name)
-							fmt.Println("  ", dep.Name, "\t", artifactId, "\t", version, "\t", "?")
+							fmt.Println("  ", dep.Name, "\t", artifactId, "\t", version, "\t", "\t", "\t", "?")
 						}
 					}
 				}
@@ -95,13 +98,17 @@ func init() {
 					gpArKey := [2]string{dep.GroupId, dep.ArtifactId}
 					if vr, ok := latestGpArVrMap[gpArKey]; ok {
 						if VersionCompare(vr, dep.Version) > 0 {
-							buffer.WriteString(fmt.Sprintf("\t%s %s %s=>%s\n", dep.GroupId, dep.ArtifactId, dep.Version, vr))
+							buffer.WriteString(
+								fmt.Sprintf(
+									"\t%s %s %s=>%s\n", dep.GroupId, dep.ArtifactId, dep.Version, vr))
 						}
 					}
 
 				}
 				if buffer.Len() > 0 {
-					fmt.Printf("项目%s 编译时间:%s,当前升级推荐\n%s", project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), buffer.String())
+					fmt.Printf(
+						"项目%s 编译时间:%s,当前升级推荐\n%s", project.Name,
+						project.BuildTime.Format("2006-01-02 15:04:05"), buffer.String())
 				}
 			}
 
@@ -127,7 +134,9 @@ func init() {
 					}
 				}
 				if buffer.Len() > 0 {
-					fmt.Printf("--[%s] [%s] [%s]\n", project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"))
+					fmt.Printf(
+						"--[%s] [%s] [%s]\n", project.Name, project.md5sum,
+						project.BuildTime.Format("2006-01-02 15:04:05"))
 					if jarLoc {
 						fmt.Printf("  %s\n", project.Path)
 					}
@@ -170,12 +179,14 @@ func init() {
 			tmp, err := template.ParseFS(fileSystem, "assets/*")
 			cobra.CheckErr(err)
 
-			shellFilePathHandler, err := os.OpenFile(shellFilePath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, os.ModeAppend|os.ModePerm)
+			shellFilePathHandler, err := os.OpenFile(
+				shellFilePath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, os.ModeAppend|os.ModePerm)
 			cobra.CheckErr(err)
 			defer shellFilePathHandler.Close()
-			err = tmp.Lookup("service.sh").Execute(shellFilePathHandler, struct {
-				ProjectFileName string
-			}{filename})
+			err = tmp.Lookup("service.sh").Execute(
+				shellFilePathHandler, struct {
+					ProjectFileName string
+				}{filename})
 			cobra.CheckErr(err)
 			log.Info("生成命令文件:", shellFilePath)
 			log.Info("**********结束运行***********")
@@ -195,9 +206,10 @@ func init() {
 			projects, err := parseEntry(args[0])
 			cobra.CheckErr(err)
 			log.Info("**********结果分析***********")
-			sort.Slice(projects, func(i, j int) bool {
-				return strings.Compare(projects[i].ArtifactId, projects[j].ArtifactId) < 0
-			})
+			sort.Slice(
+				projects, func(i, j int) bool {
+					return strings.Compare(projects[i].ArtifactId, projects[j].ArtifactId) < 0
+				})
 			defer file.Close()
 			csvWriter := csv.NewWriter(file)
 			csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值"})
@@ -266,15 +278,21 @@ func init() {
 				}
 				sortedTitles = append(sortedTitles, basicEntry.Title)
 			}
-			sort.Slice(sortedTitles, func(i, j int) bool {
-				return strings.Compare(sortedTitles[i], sortedTitles[j]) < 0
-			})
+			sort.Slice(
+				sortedTitles, func(i, j int) bool {
+					return strings.Compare(sortedTitles[i], sortedTitles[j]) < 0
+				})
 			for _, title := range sortedTitles {
 				if value, ok := jarFileEntryMap[title]; ok {
 					basicEntry := value[0]
-					fmt.Printf("%s,%s,%s,%s,%d nodes\n", basicEntry.Title, basicEntry.BuildTime.Format("2006-01-02 15:04:05"), basicEntry.Md5sum, basicEntry.Source, len(value)-1)
+					fmt.Printf(
+						"%s,%s,%s,%s,%d nodes\n", basicEntry.Title, basicEntry.BuildTime.Format("2006-01-02 15:04:05"),
+						basicEntry.Md5sum, basicEntry.Source, len(value)-1)
 					for i := 1; i < len(value); i++ {
-						fmt.Printf("\t%s,%s,%s,%s,%s,%s,%s\n", value[i].Title, value[i].BuildTime.Format("2006-01-02 15:04:05"), value[i].Md5sum, value[i].Host, value[i].Source, value[i].Uptime.Format("2006-01-02 15:04:05"), value[i].Err)
+						fmt.Printf(
+							"\t%s,%s,%s,%s,%s,%s,%s\n", value[i].Title,
+							value[i].BuildTime.Format("2006-01-02 15:04:05"), value[i].Md5sum, value[i].Host,
+							value[i].Source, value[i].Uptime.Format("2006-01-02 15:04:05"), value[i].Err)
 					}
 				}
 			}
@@ -291,21 +309,22 @@ func parseEntry(path string) ([]Project, error) {
 	}
 	projects := make([]Project, 0)
 	if stat.IsDir() {
-		err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-			if !strings.HasSuffix(d.Name(), ".jar") {
+		err = filepath.WalkDir(
+			path, func(path string, d fs.DirEntry, err error) error {
+				if !strings.HasSuffix(d.Name(), ".jar") {
+					return nil
+				}
+				abs, err := filepath.Abs(path)
+				if err != nil {
+					return err
+				}
+				project, err := parseProject(abs)
+				if err != nil {
+					return err
+				}
+				projects = append(projects, project)
 				return nil
-			}
-			abs, err := filepath.Abs(path)
-			if err != nil {
-				return err
-			}
-			project, err := parseProject(abs)
-			if err != nil {
-				return err
-			}
-			projects = append(projects, project)
-			return nil
-		})
+			})
 	} else {
 		if !strings.HasSuffix(stat.Name(), ".jar") {
 			return nil, errors.New("不是一个jar文件")
@@ -355,9 +374,9 @@ func parseProject(path string) (Project, error) {
 		return project, nil
 	}
 	defer archive.Close()
-	for _, file := range archive.File {
-		if strings.HasSuffix(file.Name, "pom.properties") {
-			props, err := ConvertPropertiesToMap(file)
+	for _, fileEntry := range archive.File {
+		if strings.HasSuffix(fileEntry.Name, "pom.properties") {
+			props, err := ConvertPropertiesToMap(fileEntry)
 			if err != nil {
 				log.Warn("pom.properties损坏,跳过读取!")
 				project.Err = errors.New("pom.properties损坏")
@@ -366,49 +385,57 @@ func parseProject(path string) (Project, error) {
 			project.GroupId = props["groupId"]
 			project.ArtifactId = props["artifactId"]
 			project.Version = props["version"]
-		} else if strings.HasSuffix(file.Name, "MANIFEST.MF") {
-			project.BuildTime = file.Modified
-		} else if strings.HasSuffix(file.Name, ".jar") {
-			jarArchive, err := ZipFileToReader(file)
+		} else if strings.HasSuffix(fileEntry.Name, "MANIFEST.MF") {
+			project.BuildTime = fileEntry.Modified
+		} else if strings.HasSuffix(fileEntry.Name, ".jar") {
+			jarFileEntryReader, err := ConvertZipFileToReader(fileEntry)
+
 			if err != nil {
-				project.Deps = append(project.Deps, Dep{
-					Name: filepath.Base(file.Name),
-					Path: file.Name,
-					Err:  errors.New("依赖损坏"),
-				})
+				project.Deps = append(
+					project.Deps, Dep{
+						Name: filepath.Base(fileEntry.Name),
+						Path: fileEntry.Name,
+						Err:  errors.New("依赖损坏"),
+					})
 				log.Warn("依赖损坏,跳过读取!", err)
 				continue
 			}
 			pomFound := false
-			for _, jfe := range jarArchive.File {
+			for _, jfe := range jarFileEntryReader.File {
 				if strings.HasSuffix(jfe.Name, "pom.properties") {
 					props, err := ConvertPropertiesToMap(jfe)
 					if err != nil {
-						project.Deps = append(project.Deps, Dep{
-							Name: filepath.Base(file.Name),
-							Path: file.Name,
-							Err:  errors.New("properties损坏,跳过读取!"),
-						})
+						project.Deps = append(
+							project.Deps, Dep{
+								Name: filepath.Base(fileEntry.Name),
+								Path: fileEntry.Name,
+								Err:  errors.New("properties损坏,跳过读取!"),
+							})
 						log.Warn("properties损坏,跳过读取!")
 						continue
 					}
-					project.Deps = append(project.Deps, Dep{
-						Name:       filepath.Base(file.Name),
-						Path:       file.Name,
-						GroupId:    props["groupId"],
-						ArtifactId: props["artifactId"],
-						Version:    props["version"],
-					})
+					md5Str, _ := Md5SumZipFile(fileEntry)
+					project.Deps = append(
+						project.Deps, Dep{
+							Name:       filepath.Base(fileEntry.Name),
+							Path:       fileEntry.Name,
+							GroupId:    props["groupId"],
+							ArtifactId: props["artifactId"],
+							Version:    props["version"],
+							BuildTime:  fileEntry.Modified,
+							Md5Str:     md5Str,
+						})
 					pomFound = true
 					break
 				}
 			}
 			if !pomFound {
-				project.Deps = append(project.Deps, Dep{
-					Name: filepath.Base(file.Name),
-					Path: file.Name,
-					Err:  errors.New("非Maven编译项目"),
-				})
+				project.Deps = append(
+					project.Deps, Dep{
+						Name: filepath.Base(fileEntry.Name),
+						Path: fileEntry.Name,
+						Err:  errors.New("非Maven编译项目"),
+					})
 			}
 		}
 	}
@@ -488,6 +515,8 @@ type Dep struct {
 	GroupId    string
 	ArtifactId string
 	Version    string
+	BuildTime  time.Time
+	Md5Str     string
 	Err        error
 }
 

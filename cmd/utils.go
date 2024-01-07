@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -68,18 +67,43 @@ func ConvertPropertiesToMap(file *zip.File) (map[string]string, error) {
 	return result, nil
 }
 
-// ZipFileToReader 将zip file转换成 zip.reader
-func ZipFileToReader(file *zip.File) (*zip.Reader, error) {
+// ConvertZipFileToReader 将zip file转换成 zip.reader
+func ConvertZipFileToReader(file *zip.File) (*zip.Reader, error) {
 	reader, err := file.Open()
 	if err != nil {
 		return nil, err
 	}
 	defer reader.Close()
-	bts, err := ioutil.ReadAll(reader)
+	bts, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 	return zip.NewReader(bytes.NewReader(bts), int64(len(bts)))
+}
+
+func Md5SumZipFile(file *zip.File) (string, error) {
+	reader, err := file.Open()
+	if err != nil {
+		return "", err
+	}
+	defer reader.Close()
+	hash := md5.New()
+	bf := make([]byte, 512*1024)
+	for {
+		n, err := reader.Read(bf)
+		if err != nil {
+			if err != io.EOF {
+				return "", err
+			}
+			return hex.EncodeToString(hash.Sum(nil)), nil
+		}
+		if n > 0 {
+			_, err := hash.Write(bf[0:n])
+			if err != nil {
+				return "", err
+			}
+		}
+	}
 }
 
 // VersionCompare 通用版本比较函数
