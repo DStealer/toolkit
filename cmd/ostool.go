@@ -97,7 +97,7 @@ func init() {
 			cobra.CheckErr(err)
 			stopIfFailed, err := cmd.Flags().GetBool("stop-if-failed")
 			cobra.CheckErr(err)
-			file, err := os.OpenFile(args[1], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+			file, err := os.OpenFile(args[0], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
 			cobra.CheckErr(err)
 			defer file.Close()
 			br := bufio.NewReader(file)
