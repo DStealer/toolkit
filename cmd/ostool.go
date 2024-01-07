@@ -95,7 +95,7 @@ func init() {
 			log.Info("**********开始执行*******")
 			startLine, err := cmd.Flags().GetInt("start-line")
 			cobra.CheckErr(err)
-			stopIfFailed, err := cmd.Flags().GetBool("stop-if-failed")
+			fastFail, err := cmd.Flags().GetBool("fast-fail")
 			cobra.CheckErr(err)
 			file, err := os.OpenFile(args[0], os.O_RDONLY, 0644)
 			cobra.CheckErr(err)
@@ -129,7 +129,7 @@ func init() {
 					} else {
 						log.Warnf("执行第%v条命令失败", lineCounter)
 					}
-					if stopIfFailed {
+					if fastFail {
 						break
 					}
 				} else {
@@ -148,7 +148,7 @@ func init() {
 		},
 	}
 	batchCmd.Flags().Int("start-line", 0, "命令行开始位置")
-	batchCmd.Flags().Bool("stop-if-failed", true, "命令失败是否继续执行")
+	batchCmd.Flags().Bool("fast-fail", true, "命令失败是否继续执行")
 	osCmd.AddCommand(batchCmd)
 }
 
