@@ -129,7 +129,7 @@ func init() {
 					} else {
 						log.Warnf("执行第%v条命令失败", lineCounter)
 					}
-					if !stopIfFailed {
+					if stopIfFailed {
 						break
 					}
 				} else {
