@@ -1,13 +1,18 @@
 package cmd
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"github.com/docker/go-units"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
+	"io"
 	"math/rand"
+	"os"
+	"os/exec"
 	"runtime"
 	"time"
 )
@@ -81,6 +86,70 @@ func init() {
 	resourceCmd.Flags().Int64("durationMin", -1, "持续时长(分钟),-1表示永久")
 
 	osCmd.AddCommand(resourceCmd)
+
+	batchCmd := &cobra.Command{
+		Use:   "batch [args] command-file",
+		Short: "批量执行命令工具,文件中每一行为一条命令",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Info("**********开始执行*******")
+			startLine, err := cmd.Flags().GetInt("start-line")
+			cobra.CheckErr(err)
+			stopIfFailed, err := cmd.Flags().GetBool("stop-if-failed")
+			cobra.CheckErr(err)
+			file, err := os.OpenFile(args[1], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+			cobra.CheckErr(err)
+			defer file.Close()
+			br := bufio.NewReader(file)
+			lineCounter := 0
+			successCounter := 0
+			failedCounter := 0
+			ignoreCounter := 0
+			for {
+				line, err := br.ReadString('\n')
+				if err != nil || io.EOF == err {
+					break
+				}
+				lineCounter = lineCounter + 1
+				if startLine > lineCounter {
+					ignoreCounter = ignoreCounter + 1
+					log.Infof("忽略第%v条命令:%v", lineCounter, line)
+					continue
+				}
+				log.Infof("执行第%v条命令:%v", lineCounter, line)
+				cmd := exec.Command("/bin/bash", "-c", line)
+				var stdout, stderr bytes.Buffer
+				cmd.Stdout = &stdout
+				cmd.Stderr = &stderr
+				err = cmd.Run()
+				if err != nil {
+					failedCounter = failedCounter + 1
+					if stderr.Len() > 0 {
+						log.Warnf("执行第%v条命令失败,输出为:\n%s", lineCounter, stderr.String())
+					} else {
+						log.Warnf("执行第%v条命令失败", lineCounter)
+					}
+					if !stopIfFailed {
+						break
+					}
+				} else {
+					successCounter = successCounter + 1
+					if stdout.Len() > 0 {
+						log.Infof("执行第%v条命令成功,输出为:\n%s", lineCounter, stdout.String())
+					} else {
+						log.Infof("执行第%v条命令成功", lineCounter)
+					}
+				}
+			}
+			log.Info("**********执行结束***********")
+			log.Info(
+				"总计执行命令:%v条,成功:%v条,失败:%v条,忽略:%v条", lineCounter, successCounter, failedCounter,
+				ignoreCounter)
+		},
+	}
+	batchCmd.Flags().Int("start-line", 0, "命令行开始位置")
+	batchCmd.Flags().Bool("stop-if-failed", true, "命令失败是否继续执行")
+	osCmd.AddCommand(batchCmd)
 }
 
 // 保持cpu使用率
@@ -155,7 +224,11 @@ func keepMem(targetPercent, deltaPercent float64, ctx context.Context) error {
 			case <-ticker.C:
 				memory, err := mem.VirtualMemory()
 				cobra.CheckErr(err)
-				log.Infof("Total: %v,Used:%v,Available:%v, Free:%v, UsedPercent:%f %%\n", units.HumanSize(float64(memory.Total)), units.HumanSize(float64(memory.Used)), units.HumanSize(float64(memory.Available)), units.HumanSize(float64(memory.Free)), memory.UsedPercent)
+				log.Infof(
+					"Total: %v,Used:%v,Available:%v, Free:%v, UsedPercent:%f %%\n",
+					units.HumanSize(float64(memory.Total)), units.HumanSize(float64(memory.Used)),
+					units.HumanSize(float64(memory.Available)), units.HumanSize(float64(memory.Free)),
+					memory.UsedPercent)
 				currentPercent := memory.UsedPercent / 100.0
 				if currentPercent > (targetPercent + deltaPercent) { //高于上限
 					sl = make([]byte, 0, 0)
