@@ -93,6 +93,7 @@ stop)
       if [ -n "${pid}" ]; then
         echo "${PROJECT_NAME} graceful stop waiting..."
         sleep $interval
+        ((interval++))
       else
         echo "${PROJECT_NAME} graceful stop success"
         exit 0
