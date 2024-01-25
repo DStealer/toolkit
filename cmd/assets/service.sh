@@ -84,17 +84,39 @@ stop)
     exit 0
   fi
   echo "The ${PROJECT_NAME}(${pid}) is running..."
+  kill -15 ${pid}
+  echo "Send SIGTERM request to ${PROJECT_NAME}(${pid}) OK"
+  interval=5
+  while [ $interval -ge 1 ]
+  do
+     pid=$(ps ax | grep ${PROJECT_NAME} | grep "${TARGET_DIR}" | grep java | grep -v grep | awk '{print $1}')
+      if [ -n "${pid}" ]; then
+        echo "${PROJECT_NAME} graceful stop waiting..."
+        sleep $interval
+      else
+        echo "${PROJECT_NAME} graceful stop success"
+        exit 0
+      fi
+  done
+
+  pid=$(ps ax | grep ${PROJECT_NAME} | grep "${TARGET_DIR}" | grep java | grep -v grep | awk '{print $1}')
+  if [ -n "${pid}" ]; then
+    echo "${PROJECT_NAME} graceful stop failed"
+  else
+    echo "${PROJECT_NAME} graceful stop success"
+    exit 0
+  fi
   # shellcheck disable=SC2086
   kill -9 ${pid}
-  echo "Send shutdown request to ${PROJECT_NAME}(${pid}) OK"
+  echo "Send SIGKILL request to ${PROJECT_NAME}(${pid}) OK"
   sleep 5
   # shellcheck disable=SC2009
   pid=$(ps ax | grep ${PROJECT_NAME} | grep "${TARGET_DIR}" | grep java | grep -v grep | awk '{print $1}')
   if [ -n "${pid}" ]; then
-    echo "${PROJECT_NAME} stop failed"
+    echo "${PROJECT_NAME} force stop failed"
     exit 1
   fi
-  echo "${PROJECT_NAME} stop success"
+  echo "${PROJECT_NAME} force stop success"
   ;;
 restart)
   shift
