@@ -15,7 +15,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:     "tk",
 	Short:   "运维工具箱",
-	Version: fmt.Sprintf("\nVersion: %v\nCompile:%v\nBranch:%v\nGitDirty:%v", Version, Compile, Branch, GitDirty),
+	Version: fmt.Sprintf("\nVersion: %v\nCompile: %v\nBranch: %v\nGitDirty: %v", Version, Compile, Branch, GitDirty),
 }
 
 func Execute() error {
