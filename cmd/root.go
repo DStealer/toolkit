@@ -4,10 +4,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	Version  = "No Version Provided"
+	Compile  = ""
+	Branch   = ""
+	GitDirty = ""
+)
+
 var rootCmd = &cobra.Command{
 	Use:     "tk",
 	Short:   "运维工具箱",
-	Version: "v0.0.4",
+	Version: Version,
 }
 
 func Execute() error {
