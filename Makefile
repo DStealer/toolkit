@@ -7,8 +7,7 @@ endif
 PATH := ${GOPATH}/bin:$(PATH)
 GCFLAGS=-gcflags "all=-trimpath=${GOPATH} -N -l"
 
-VERSION_TAG := $(shell git describe --tags --always)
-VERSION_VERSION := $(VERSION_TAG) $(shell git log --date=iso --pretty=format:"%cd" -1)
+VERSION_VERSION := $(shell git describe --tags --always) $(shell git log --date=iso --pretty=format:"%cd" -1)
 VERSION_COMPILE := $(shell date +"%F %T %z") by $(shell go version)
 VERSION_BRANCH  := $(shell git rev-parse --abbrev-ref HEAD)
 VERSION_GIT_DIRTY := $(shell git diff --no-ext-diff 2>/dev/null | wc -l | awk '{print $1}')
