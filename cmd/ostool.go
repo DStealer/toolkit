@@ -165,7 +165,7 @@ func init() {
 			cobra.CheckErr(err)
 			user, err := cmd.Flags().GetString("user")
 			cobra.CheckErr(err)
-			log.Infof("尝试连接[%s@%s]", user, addr)
+			log.Infof("尝试连接:%s@%s", user, addr)
 			password, err := speakeasy.Ask("请输入密码:")
 			cobra.CheckErr(err)
 			if password == "" {
@@ -182,7 +182,7 @@ func init() {
 			}
 			client, err := ssh.Dial("tcp", addr, config)
 			cobra.CheckErr(err)
-			log.Infof("连接[%s@%s]成功", user, addr)
+			log.Infof("连接%s@%s成功,开始准备执行批量命令", user, addr)
 			defer client.Close()
 			startLine, err := cmd.Flags().GetInt("start-line")
 			cobra.CheckErr(err)
