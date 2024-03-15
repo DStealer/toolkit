@@ -4,11 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
+	"github.com/bgentry/speakeasy"
 	"github.com/docker/go-units"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh"
 	"io"
 	"math/rand"
 	"os"
@@ -150,6 +153,104 @@ func init() {
 	batchCmd.Flags().Int("start-line", 0, "命令行开始位置")
 	batchCmd.Flags().Bool("fast-fail", true, "命令失败是否继续执行")
 	osCmd.AddCommand(batchCmd)
+
+	sshBatchCmd := &cobra.Command{
+		Use:   "ssh-batch [args] command-file",
+		Short: "批量执行命令工具,文件中每一行为一条命令",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Info("**********开始执行*******")
+
+			addr, err := cmd.Flags().GetString("addr")
+			cobra.CheckErr(err)
+			user, err := cmd.Flags().GetString("user")
+			cobra.CheckErr(err)
+
+			password, err := speakeasy.Ask("请输入密码:")
+			cobra.CheckErr(err)
+			if password == "" {
+				fmt.Println("选择退出操作")
+				os.Exit(0)
+			}
+			config := &ssh.ClientConfig{
+				User: user,
+				Auth: []ssh.AuthMethod{
+					ssh.Password(password),
+				},
+				HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+				Timeout:         60 * time.Second,
+			}
+			client, err := ssh.Dial("tcp", addr, config)
+			cobra.CheckErr(err)
+			log.Infof("连接[%s]成功", addr)
+			defer client.Close()
+			startLine, err := cmd.Flags().GetInt("start-line")
+			cobra.CheckErr(err)
+			fastFail, err := cmd.Flags().GetBool("fast-fail")
+			cobra.CheckErr(err)
+			file, err := os.OpenFile(args[0], os.O_RDONLY, 0644)
+			cobra.CheckErr(err)
+			defer file.Close()
+			br := bufio.NewReader(file)
+			lineCounter := 0
+			successCounter := 0
+			failedCounter := 0
+			ignoreCounter := 0
+			for {
+				line, err := br.ReadString('\n')
+				if err != nil || io.EOF == err {
+					break
+				}
+				lineCounter = lineCounter + 1
+				if startLine > lineCounter {
+					ignoreCounter = ignoreCounter + 1
+					log.Infof("忽略第%v条命令:%v", lineCounter, line)
+					continue
+				}
+				log.Infof("执行第%v条命令:%v", lineCounter, line)
+				session, err := client.NewSession()
+				if err != nil {
+					failedCounter = failedCounter + 1
+					log.Fatalf("执行第%v条命令失败,输出为:\n%v", lineCounter, err)
+				}
+				var stdout, stderr bytes.Buffer
+				session.Stdout = &stdout
+				session.Stderr = &stderr
+				err = session.Run("/bin/bash -c " + line)
+				if err != nil {
+					failedCounter = failedCounter + 1
+					if stderr.Len() > 0 {
+						log.Warnf("执行第%v条命令失败,输出为:\n%s", lineCounter, stderr.String())
+					} else {
+						log.Warnf("执行第%v条命令失败", lineCounter)
+					}
+					if fastFail {
+						break
+					}
+				} else {
+					successCounter = successCounter + 1
+					if stdout.Len() > 0 {
+						log.Infof("执行第%v条命令成功,输出为:\n%s", lineCounter, stdout.String())
+					} else {
+						log.Infof("执行第%v条命令成功", lineCounter)
+					}
+				}
+				session.Close()
+			}
+			log.Info("**********执行结束***********")
+			log.Infof(
+				"总计执行命令:%v条,成功:%v条,失败:%v条,忽略:%v条", lineCounter, successCounter, failedCounter,
+				ignoreCounter)
+		},
+	}
+	sshBatchCmd.Flags().Int("start-line", 0, "命令行开始位置")
+	sshBatchCmd.Flags().Bool("fast-fail", true, "命令失败是否继续执行")
+
+	sshBatchCmd.Flags().String("addr", "127.0.0.1:22", "服务器地址和端口")
+	sshBatchCmd.MarkFlagRequired("addr")
+	sshBatchCmd.Flags().String("user", "root", "用户名")
+	sshBatchCmd.MarkFlagRequired("user")
+	osCmd.AddCommand(sshBatchCmd)
 }
 
 // 保持cpu使用率

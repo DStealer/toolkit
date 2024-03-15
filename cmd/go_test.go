@@ -24,6 +24,7 @@ import (
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 	"io"
 	v1 "k8s.io/api/core/v1"
@@ -144,9 +145,10 @@ func TestGlob(t *testing.T) {
 }
 func TestDuration(t *testing.T) {
 	c := cron.New()
-	err := c.AddFunc("* 0 * * * *", func() {
-		fmt.Println("aaa")
-	})
+	err := c.AddFunc(
+		"* 0 * * * *", func() {
+			fmt.Println("aaa")
+		})
 	if err != nil {
 		t.Error(err)
 	}
@@ -256,21 +258,22 @@ func TestPortForward(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		err = wait.PollImmediate(1*time.Second, 5*time.Minute, func() (bool, error) {
+		err = wait.PollImmediate(
+			1*time.Second, 5*time.Minute, func() (bool, error) {
 
-			pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot", metav1.GetOptions{})
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error getting Pod :%q [%v]\n", "netshoot", err)
-				return false, nil
-			}
-			if pod == nil {
-				return false, nil
-			}
-			if pod.Status.Phase != v1.PodRunning {
-				return false, nil
-			}
-			return true, nil
-		})
+				pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot", metav1.GetOptions{})
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error getting Pod :%q [%v]\n", "netshoot", err)
+					return false, nil
+				}
+				if pod == nil {
+					return false, nil
+				}
+				if pod.Status.Phase != v1.PodRunning {
+					return false, nil
+				}
+				return true, nil
+			})
 		if err != nil {
 			t.Error(err)
 		}
@@ -297,7 +300,8 @@ func TestPortForward(t *testing.T) {
 
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
 
-	fw, err := portforward.NewOnAddresses(dialer, []string{"127.0.0.1"}, []string{"22622:22"}, stopChannel, readyChannel, os.Stdout, os.Stderr)
+	fw, err := portforward.NewOnAddresses(
+		dialer, []string{"127.0.0.1"}, []string{"22622:22"}, stopChannel, readyChannel, os.Stdout, os.Stderr)
 
 	if err != nil {
 		t.Error(err)
@@ -321,21 +325,22 @@ func TestIndexer(t *testing.T) {
 
 	informer := factory.Core().V1().Pods().Informer()
 
-	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			mObj := obj.(*v1.Pod)
-			log.Infof("new pod: %s", mObj)
-		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			oObj := oldObj.(*v1.Pod)
-			nObj := newObj.(*v1.Pod)
-			log.Infof("%v change to: %v", oObj, nObj)
-		},
-		DeleteFunc: func(obj interface{}) {
-			mObj := obj.(*v1.Pod)
-			log.Infof("delete pod: %v", mObj)
-		},
-	})
+	informer.AddEventHandler(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				mObj := obj.(*v1.Pod)
+				log.Infof("new pod: %s", mObj)
+			},
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				oObj := oldObj.(*v1.Pod)
+				nObj := newObj.(*v1.Pod)
+				log.Infof("%v change to: %v", oObj, nObj)
+			},
+			DeleteFunc: func(obj interface{}) {
+				mObj := obj.(*v1.Pod)
+				log.Infof("delete pod: %v", mObj)
+			},
+		})
 	informer.Run(stopCh)
 }
 func TestRegistry(t *testing.T) {
@@ -374,7 +379,9 @@ func TestMem(t *testing.T) {
 		for range ticker.C {
 			memory, err := mem.VirtualMemory()
 			cobra.CheckErr(err)
-			fmt.Printf("Total: %v,Used:%v,Available:%v, Free:%v, UsedPercent:%f %%\n", memory.Total/1024/1024, memory.Used/1024/1024, memory.Available/1024/1024, memory.Free/1024/1024, memory.UsedPercent)
+			fmt.Printf(
+				"Total: %v,Used:%v,Available:%v, Free:%v, UsedPercent:%f %%\n", memory.Total/1024/1024,
+				memory.Used/1024/1024, memory.Available/1024/1024, memory.Free/1024/1024, memory.UsedPercent)
 			currentPercent := memory.UsedPercent / 100.0
 			if currentPercent > (targetPercent + deltaPercent) { //高于上限
 				sl = make([]byte, 0, 0)
@@ -499,24 +506,26 @@ func TestMysql4(t *testing.T) {
 	var result mysql.Result
 	defer result.Close()
 
-	err = conn.ExecuteSelectStreaming(fmt.Sprintf("SELECT * FROM `%s` WHERE %s ;", table, where), &result, func(row []mysql.FieldValue) error {
-		names := make([]string, len(result.Fields))
-		values := make([]string, len(result.Fields))
-		for index, val := range row {
-			if val.Type == mysql.FieldValueTypeString {
-				values[index] = fmt.Sprintf("'%s'", string(val.AsString()))
-			} else if val.Type == mysql.FieldValueTypeNull {
-				values[index] = "NULL"
-			} else {
-				values[index] = fmt.Sprintf("%v", val.Value())
+	err = conn.ExecuteSelectStreaming(
+		fmt.Sprintf("SELECT * FROM `%s` WHERE %s ;", table, where), &result, func(row []mysql.FieldValue) error {
+			names := make([]string, len(result.Fields))
+			values := make([]string, len(result.Fields))
+			for index, val := range row {
+				if val.Type == mysql.FieldValueTypeString {
+					values[index] = fmt.Sprintf("'%s'", string(val.AsString()))
+				} else if val.Type == mysql.FieldValueTypeNull {
+					values[index] = "NULL"
+				} else {
+					values[index] = fmt.Sprintf("%v", val.Value())
+				}
+				names[index] = fmt.Sprintf("`%s`", string(result.Fields[index].Name))
 			}
-			names[index] = fmt.Sprintf("`%s`", string(result.Fields[index].Name))
-		}
-		fmt.Printf("INSERT INTO `%s` (%s) VALUES (%s);\n", table, strings.Join(names, ","), strings.Join(values, ","))
-		return nil
-	}, func(result *mysql.Result) error {
-		return nil
-	})
+			fmt.Printf(
+				"INSERT INTO `%s` (%s) VALUES (%s);\n", table, strings.Join(names, ","), strings.Join(values, ","))
+			return nil
+		}, func(result *mysql.Result) error {
+			return nil
+		})
 	cobra.CheckErr(err)
 }
 func Secret(user, realm string) string {
@@ -557,7 +566,9 @@ func (h HttpTransferHandler) HandleFieldList(table string, fieldWildcard string)
 }
 
 func (h HttpTransferHandler) HandleStmtPrepare(query string) (int, int, interface{}, error) {
-	if !strings.EqualFold("select httpStatus,headers,body from t_transfer where methodParam = ? and uriParam= ? and queryParam= ? and headerParam= ? and bodyParam = ?", query) {
+	if !strings.EqualFold(
+		"select httpStatus,headers,body from t_transfer where methodParam = ? and uriParam= ? and queryParam= ? and headerParam= ? and bodyParam = ?",
+		query) {
 		return 0, 0, nil, fmt.Errorf("not supported stmt now")
 	}
 	return 5, 3, context.Background(), nil
@@ -588,7 +599,9 @@ func (h HttpTransferHandler) HandleStmtExecute(ctx interface{}, query string, ar
 		}
 		for name, values := range headers {
 			//remove Hop-by-hop header
-			if ContainsFold(name, "Host", "Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailers", "Transfer-Encoding", "Upgrade") {
+			if ContainsFold(
+				name, "Host", "Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailers",
+				"Transfer-Encoding", "Upgrade") {
 				continue
 			}
 			for _, value := range values {
@@ -626,7 +639,8 @@ func (h HttpTransferHandler) HandleStmtExecute(ctx interface{}, query string, ar
 	}
 	body := string(bytes)
 
-	r, err := mysql.BuildSimpleBinaryResultset([]string{"httpStatus", "headers", "body"}, [][]interface{}{{httpStatus, headerJson, body}})
+	r, err := mysql.BuildSimpleBinaryResultset(
+		[]string{"httpStatus", "headers", "body"}, [][]interface{}{{httpStatus, headerJson, body}})
 
 	if err != nil {
 		return nil, err
@@ -663,8 +677,9 @@ func TestSqlProxy(t *testing.T) {
 			log.Warn(err)
 			continue
 		}
-		conn, err := server.NewConn(c, "root", "root", HttpTransferHandler{
-			BaseUrl: baseUrl, Client: client})
+		conn, err := server.NewConn(
+			c, "root", "root", HttpTransferHandler{
+				BaseUrl: baseUrl, Client: client})
 		if err != nil {
 			log.Warn(err)
 			continue
@@ -699,7 +714,9 @@ func TestQueryDb(t *testing.T) {
 	headerParam := "{\"a\":[\"b\"]}"
 	bodyParam := ""
 
-	result, err := conn.Execute("select httpStatus,headers,body from t_transfer where methodParam = ? and uriParam= ? and queryParam= ? and headerParam= ? and bodyParam = ?", []interface{}{methodParam, uriParam, queryParam, headerParam, bodyParam}...)
+	result, err := conn.Execute(
+		"select httpStatus,headers,body from t_transfer where methodParam = ? and uriParam= ? and queryParam= ? and headerParam= ? and bodyParam = ?",
+		[]interface{}{methodParam, uriParam, queryParam, headerParam, bodyParam}...)
 
 	cobra.CheckErr(err)
 
@@ -849,4 +866,28 @@ func TestYaml(t *testing.T) {
 	cobra.CheckErr(err)
 	log.Infof("读取文件:%v", mysqlCleansingConfig)
 	mysqlCleansingConfig.validate()
+}
+
+func TestSSH(t *testing.T) {
+	config := &ssh.ClientConfig{
+		User: "dstealer",
+		Auth: []ssh.AuthMethod{
+			ssh.Password(""),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         60 * time.Second,
+	}
+	client, err := ssh.Dial("tcp", "127.0.0.1:22", config)
+	cobra.CheckErr(err)
+	defer client.Close()
+	session, err := client.NewSession()
+	cobra.CheckErr(err)
+	defer session.Close()
+	var stdoutBuf bytes.Buffer
+	var stderrBuf bytes.Buffer
+	session.Stdout = &stdoutBuf
+	session.Stderr = &stderrBuf
+	err = session.Run("ls .")
+	cobra.CheckErr(err)
+	fmt.Println(stdoutBuf.String(), stderrBuf.String())
 }
