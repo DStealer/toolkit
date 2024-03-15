@@ -120,7 +120,7 @@ func init() {
 					continue
 				}
 				log.Infof("执行第%v条命令:%v", lineCounter, line)
-				cmd := exec.Command("/bin/bash", "-c", line)
+				cmd := exec.Command(line)
 				var stdout, stderr bytes.Buffer
 				cmd.Stdout = &stdout
 				cmd.Stderr = &stderr
@@ -216,7 +216,7 @@ func init() {
 				var stdout, stderr bytes.Buffer
 				session.Stdout = &stdout
 				session.Stderr = &stderr
-				err = session.Run("/bin/bash -c " + line)
+				err = session.Run(line)
 				if err != nil {
 					failedCounter = failedCounter + 1
 					if stderr.Len() > 0 {
