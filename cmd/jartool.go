@@ -68,16 +68,16 @@ func init() {
 				w.Write([]string{"项目名称", "项目md5", "项目构建时间", "项目路径", "依赖名称", "依赖AR", "依赖版本号", "依赖md5", "依赖构建时间", "解析状态"})
 				for _, project := range projects {
 					for _, dep := range project.Deps {
-						if dep.Err == nil {
+						if dep.Err != nil {
+							artifactId, version := parseArtifactIdAndVersion(dep.Name)
+							w.Write(
+								[]string{project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
+									project.Path, dep.Name, artifactId, version, dep.Md5Str, dep.BuildTime.Format("2006-01-02 15:04:05"), dep.Err.Error()})
+						} else {
 							w.Write(
 								[]string{project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
 									project.Path, dep.Name, dep.ArtifactId, dep.Version, dep.Md5Str,
 									dep.BuildTime.Format("2006-01-02 15:04:05"), "√"})
-						} else {
-							artifactId, version := parseArtifactIdAndVersion(dep.Name)
-							w.Write(
-								[]string{project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
-									project.Path, dep.Name, artifactId, version, "?", "?", "?"})
 						}
 					}
 				}
@@ -409,17 +409,22 @@ func parseProject(path string) (Project, error) {
 			project.BuildTime = fileEntry.Modified
 		} else if strings.HasSuffix(fileEntry.Name, ".jar") {
 			jarFileEntryReader, err := ConvertZipFileToReader(fileEntry)
-
 			if err != nil {
 				project.Deps = append(
 					project.Deps, Dep{
-						Name: filepath.Base(fileEntry.Name),
-						Path: fileEntry.Name,
-						Err:  errors.New("依赖损坏"),
+						Name:       filepath.Base(fileEntry.Name),
+						Path:       fileEntry.Name,
+						GroupId:    "",
+						ArtifactId: "",
+						Version:    "",
+						BuildTime:  fileEntry.Modified,
+						Md5Str:     "",
+						Err:        errors.New("依赖损坏"),
 					})
 				log.Warn("依赖损坏,跳过读取!", err)
 				continue
 			}
+			md5Str, _ := Md5SumZipFile(fileEntry)
 			pomFound := false
 			for _, jfe := range jarFileEntryReader.File {
 				if strings.HasSuffix(jfe.Name, "pom.properties") {
@@ -427,14 +432,18 @@ func parseProject(path string) (Project, error) {
 					if err != nil {
 						project.Deps = append(
 							project.Deps, Dep{
-								Name: filepath.Base(fileEntry.Name),
-								Path: fileEntry.Name,
-								Err:  errors.New("properties损坏,跳过读取!"),
+								Name:       filepath.Base(fileEntry.Name),
+								Path:       fileEntry.Name,
+								GroupId:    "",
+								ArtifactId: "",
+								Version:    "",
+								BuildTime:  fileEntry.Modified,
+								Md5Str:     md5Str,
+								Err:        errors.New("properties损坏,跳过读取"),
 							})
-						log.Warn("properties损坏,跳过读取!")
+						log.Warn("properties损坏,跳过读取")
 						continue
 					}
-					md5Str, _ := Md5SumZipFile(fileEntry)
 					project.Deps = append(
 						project.Deps, Dep{
 							Name:       filepath.Base(fileEntry.Name),
@@ -452,9 +461,14 @@ func parseProject(path string) (Project, error) {
 			if !pomFound {
 				project.Deps = append(
 					project.Deps, Dep{
-						Name: filepath.Base(fileEntry.Name),
-						Path: fileEntry.Name,
-						Err:  errors.New("非Maven编译项目"),
+						Name:       filepath.Base(fileEntry.Name),
+						Path:       fileEntry.Name,
+						GroupId:    "",
+						ArtifactId: "",
+						Version:    "",
+						BuildTime:  fileEntry.Modified,
+						Md5Str:     md5Str,
+						Err:        errors.New("未找到pom文件"),
 					})
 			}
 		}
