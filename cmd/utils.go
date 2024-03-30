@@ -81,6 +81,16 @@ func ConvertZipFileToReader(file *zip.File) (*zip.Reader, error) {
 	return zip.NewReader(bytes.NewReader(bts), int64(len(bts)))
 }
 
+// Md5SumZipFile 计算给定zip.File的MD5哈希值
+//
+// 参数：
+//
+//	file *zip.File: 需要计算MD5哈希值的zip.File对象
+//
+// 返回值：
+//
+//	string: zip.File的MD5哈希值的十六进制字符串表示
+//	error: 如果计算哈希值失败，返回错误
 func Md5SumZipFile(file *zip.File) (string, error) {
 	reader, err := file.Open()
 	if err != nil {
@@ -131,11 +141,20 @@ func VersionCompare(v1 string, v2 string) int {
 	return len(v1Ar) - len(v2Ar)
 }
 
-// 防止golang未使用变量导致编译不通过
+// Unused 防止golang未使用变量导致编译不通过
 func Unused(obj interface{}) {
 
 }
 
+// CopyHeader 复制 from 中的 HTTP Header 到 to 中，排除 excludes 中指定的 Header。
+//
+// 参数：
+// from: 源 HTTP Header。
+// to: 目标 HTTP Header。
+// excludes: 需要排除的 Header 名称列表。
+//
+// 返回值：
+// 无返回值。
 func CopyHeader(from http.Header, to http.Header, excludes ...string) {
 out:
 	for k, vv := range from {
@@ -150,7 +169,7 @@ out:
 	}
 }
 
-// 判断包含
+// ContainsFold 判断包含
 func ContainsFold(dest string, ranges ...string) bool {
 	for _, e := range ranges {
 		if strings.EqualFold(e, dest) {
@@ -160,7 +179,9 @@ func ContainsFold(dest string, ranges ...string) bool {
 	return false
 }
 
-// 获取本地ip地址
+// GetLocalIP 函数返回本机的IPv4地址字符串
+// 如果获取地址失败，则返回字符串"127.0.0.1"
+// 如果本机没有IPv4地址，则返回空字符串""
 func GetLocalIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -191,6 +212,10 @@ type defaultPairGenerator struct {
 	step   int64
 }
 
+// Next 方法返回布尔值、左边界和右边界，表示下一对数的生成范围
+// 如果左边界大于等于右边界，则返回false、0和0
+// 每次调用该方法后，左边界增加pg.step
+// 如果计算出的右边界大于当前的右边界，则右边界不变
 func (pg *defaultPairGenerator) Next() (bool, int64, int64) {
 	if pg.lindex >= pg.rindex {
 		return false, 0, 0
@@ -206,6 +231,11 @@ func (pg *defaultPairGenerator) Next() (bool, int64, int64) {
 
 	return true, lindex, rindex
 }
+
+// Pre 方法返回布尔值、左边界和右边界，表示下一对数的生成范围
+// 如果左边界大于等于右边界，则返回false、0和0
+// 每次调用该方法后，右边界变为左边界减去步长pg.step
+// 如果计算出的左边界小于当前的左边界，则左边界不变
 func (pg *defaultPairGenerator) Pre() (bool, int64, int64) {
 	if pg.lindex >= pg.rindex {
 		return false, 0, 0
@@ -222,6 +252,9 @@ func (pg *defaultPairGenerator) Pre() (bool, int64, int64) {
 	return true, lindex, rindex
 }
 
+// NextBoundary 方法返回布尔值、左边界和右边界，表示下一对数的生成范围
+// 如果左边界大于右边界，则返回false、0和0
+// 每次调用该方法后，左边界增加pg.step，右边界不变
 func (pg *defaultPairGenerator) NextBoundary() (bool, int64, int64) {
 	if pg.lindex > pg.rindex {
 		return false, 0, 0
@@ -239,6 +272,10 @@ func (pg *defaultPairGenerator) NextBoundary() (bool, int64, int64) {
 	return true, lindex, rindex
 }
 
+// PreBoundary 方法返回布尔值、左边界和右边界，表示下一对数的生成范围
+// 如果左边界大于右边界，则返回false、0和0
+// 如果左边界小于计算出的左边界，则更新左边界为计算出的左边界
+// 每次调用该方法后，右边界减1
 func (pg *defaultPairGenerator) PreBoundary() (bool, int64, int64) {
 	if pg.lindex > pg.rindex {
 		return false, 0, 0
@@ -256,7 +293,11 @@ func (pg *defaultPairGenerator) PreBoundary() (bool, int64, int64) {
 	return true, lindex, rindex
 }
 
-// 新建步长处数据器
+// NewPairGenerator 函数用于生成一个PairGenerator实例，并返回PairGenerator和错误信息
+// left为生成范围的左边界
+// right为生成范围的右边界
+// step为生成范围的步长
+// 返回值为PairGenerator和错误信息，如果left > right或step < 1，则返回nil和错误信息
 func NewPairGenerator(left int64, right int64, step int64) (PairGenerator, error) {
 	if left > right {
 		return nil, errors.New("边界错误")
@@ -267,6 +308,9 @@ func NewPairGenerator(left int64, right int64, step int64) (PairGenerator, error
 	return &defaultPairGenerator{lindex: left, left: left, rindex: right, right: right, step: step}, nil
 }
 
+// If 函数接收一个bool类型的condition参数和两个interface{}类型的参数trueVal和falseVal
+// 如果condition为true，则返回trueVal；否则返回falseVal
+// 返回值为interface{}类型
 func If(condition bool, trueVal, falseVal interface{}) interface{} {
 	if condition {
 		return trueVal
