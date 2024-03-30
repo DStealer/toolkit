@@ -44,7 +44,7 @@ func init() {
 			log.Info("**********结果分析***********")
 			for _, project := range projects {
 				fmt.Printf(
-					"--[%s] [%s] [%s] [%s]\n", project.Name, project.md5sum,
+					"--[%s] [%s] [%s] [%s] [%s]\n", project.Name, project.IsSpringBoot, project.md5sum,
 					project.BuildTime.Format("2006-01-02 15:04:05"), project.Path)
 				if showJarLib {
 					for _, dep := range project.Deps {
@@ -67,17 +67,21 @@ func init() {
 				cobra.CheckErr(err)
 				defer f.Close()
 				w := csv.NewWriter(f)
-				w.Write([]string{"项目名称", "项目md5", "项目构建时间", "项目路径", "依赖名称", "依赖AR", "依赖版本号", "依赖md5", "依赖构建时间", "解析状态"})
+				w.Write([]string{"项目名称", "SpringBoot项目", "项目md5", "项目构建时间", "项目路径", "依赖名称", "依赖AR", "依赖版本号", "依赖md5", "依赖构建时间", "解析状态"})
 				for _, project := range projects {
 					for _, dep := range project.Deps {
 						if dep.Err != nil {
 							artifactId, version := parseArtifactIdAndVersion(dep.Name)
 							w.Write(
-								[]string{project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
+								[]string{project.Name, fmt.Sprintf(
+									"%v",
+									project.IsSpringBoot), project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
 									project.Path, dep.Name, artifactId, version, dep.Md5Str, dep.BuildTime.Format("2006-01-02 15:04:05"), dep.Err.Error()})
 						} else {
 							w.Write(
-								[]string{project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
+								[]string{project.Name, fmt.Sprintf(
+									"%v",
+									project.IsSpringBoot), project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
 									project.Path, dep.Name, dep.ArtifactId, dep.Version, dep.Md5Str,
 									dep.BuildTime.Format("2006-01-02 15:04:05"), "√"})
 						}
@@ -397,7 +401,7 @@ func parseProject(path string) (Project, error) {
 	}
 	defer archive.Close()
 	for _, fileEntry := range archive.File {
-		if strings.HasSuffix(fileEntry.Name, "pom.properties") {
+		if strings.HasSuffix(fileEntry.Name, "pom.properties") { //解析pom.properties
 			props, err := ConvertPropertiesToMap(fileEntry)
 			if err != nil {
 				log.Warn("pom.properties损坏,跳过读取!")
@@ -407,9 +411,9 @@ func parseProject(path string) (Project, error) {
 			project.GroupId = props["groupId"]
 			project.ArtifactId = props["artifactId"]
 			project.Version = props["version"]
-		} else if strings.HasSuffix(fileEntry.Name, "MANIFEST.MF") {
+		} else if strings.HasSuffix(fileEntry.Name, "MANIFEST.MF") { //通过MANIFEST.MF解析时间
 			project.BuildTime = fileEntry.Modified
-		} else if strings.HasSuffix(fileEntry.Name, ".jar") {
+		} else if strings.HasSuffix(fileEntry.Name, ".jar") { //解析依赖jar包
 			jarFileEntryReader, err := ConvertZipFileToReader(fileEntry)
 			if err != nil {
 				project.Deps = append(
@@ -473,6 +477,8 @@ func parseProject(path string) (Project, error) {
 						Err:        errors.New("未找到pom文件"),
 					})
 			}
+		} else if fileEntry.Name == "BOOT-INF/classpath.idx" { //根据classpath.idx判断是否是springboot项目
+			project.IsSpringBoot = true
 		}
 	}
 	return project, nil
@@ -557,15 +563,16 @@ type Dep struct {
 }
 
 type Project struct {
-	Name       string
-	Path       string
-	GroupId    string
-	ArtifactId string
-	Version    string
-	BuildTime  time.Time
-	md5sum     string
-	Deps       []Dep
-	Err        error
+	Name         string
+	Path         string
+	GroupId      string
+	ArtifactId   string
+	Version      string
+	BuildTime    time.Time
+	md5sum       string
+	IsSpringBoot bool
+	Deps         []Dep
+	Err          error
 }
 type ProjectData struct {
 	ProjectFileName string
