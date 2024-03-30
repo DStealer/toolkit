@@ -44,7 +44,7 @@ func init() {
 			log.Info("**********结果分析***********")
 			for _, project := range projects {
 				fmt.Printf(
-					"--[%s] [%s] [%s] [%s] [%s]\n", project.Name, project.IsSpringBoot, project.md5sum,
+					"--[%s] [%s] [%s] [%s] [%s]\n", project.Name, If(project.IsSpringBoot, "是", "否"), project.md5sum,
 					project.BuildTime.Format("2006-01-02 15:04:05"), project.Path)
 				if showJarLib {
 					for _, dep := range project.Deps {
@@ -74,14 +74,16 @@ func init() {
 							artifactId, version := parseArtifactIdAndVersion(dep.Name)
 							w.Write(
 								[]string{project.Name, fmt.Sprintf(
-									"%v",
-									project.IsSpringBoot), project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
+									"%s", If(
+										project.IsSpringBoot, "是",
+										"否")), project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
 									project.Path, dep.Name, artifactId, version, dep.Md5Str, dep.BuildTime.Format("2006-01-02 15:04:05"), dep.Err.Error()})
 						} else {
 							w.Write(
 								[]string{project.Name, fmt.Sprintf(
-									"%v",
-									project.IsSpringBoot), project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
+									"%s", If(
+										project.IsSpringBoot, "是",
+										"否")), project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
 									project.Path, dep.Name, dep.ArtifactId, dep.Version, dep.Md5Str,
 									dep.BuildTime.Format("2006-01-02 15:04:05"), "√"})
 						}
