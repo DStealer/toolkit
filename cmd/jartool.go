@@ -48,13 +48,15 @@ func init() {
 					project.BuildTime.Format("2006-01-02 15:04:05"), project.Path)
 				if showJarLib {
 					for _, dep := range project.Deps {
-						if dep.Err == nil {
+						if dep.Err != nil {
+							artifactId, version := parseArtifactIdAndVersion(dep.Name)
+							fmt.Println(
+								"  ", dep.Name, "\t", artifactId, "\t", version, "\t", dep.Md5Str, "\t",
+								dep.BuildTime.Format("2006-01-02 15:04:05"), "\t", dep.Err.Error())
+						} else {
 							fmt.Println(
 								"  ", dep.Name, "\t", dep.ArtifactId, "\t", dep.Version, "\t", dep.Md5Str, "\t",
-								dep.BuildTime.Format("2006-01-02 15:04:05"), "\t", "")
-						} else {
-							artifactId, version := parseArtifactIdAndVersion(dep.Name)
-							fmt.Println("  ", dep.Name, "\t", artifactId, "\t", version, "\t", "\t", "\t", "?")
+								dep.BuildTime.Format("2006-01-02 15:04:05"), "\t", "√")
 						}
 					}
 				}
