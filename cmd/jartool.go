@@ -36,6 +36,8 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			showJarLib, err := cmd.Flags().GetBool("show-lib")
 			cobra.CheckErr(err)
+			al2fp, err := cmd.Flags().GetString("al2fp")
+			cobra.CheckErr(err)
 			log.Info("**********解析开始***********")
 			projects, err := parseEntry(args[0])
 			cobra.CheckErr(err)
@@ -57,11 +59,34 @@ func init() {
 					}
 				}
 			}
-
+			if al2fp != "" {
+				log.Info("**********结果写入文件***********")
+				f, err := os.OpenFile(al2fp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+				cobra.CheckErr(err)
+				defer f.Close()
+				w := csv.NewWriter(f)
+				w.Write([]string{"项目名称", "项目md5", "项目构建时间", "项目路径", "依赖名称", "依赖AR", "依赖版本号", "依赖md5", "依赖构建时间", "解析状态"})
+				for _, project := range projects {
+					for _, dep := range project.Deps {
+						if dep.Err == nil {
+							w.Write(
+								[]string{project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
+									project.Path, dep.Name, dep.ArtifactId, dep.Version, dep.Md5Str,
+									dep.BuildTime.Format("2006-01-02 15:04:05"), "√"})
+						} else {
+							artifactId, version := parseArtifactIdAndVersion(dep.Name)
+							w.Write(
+								[]string{project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
+									project.Path, dep.Name, artifactId, version, "?", "?", "?"})
+						}
+					}
+				}
+			}
 			log.Info("**********结束运行***********")
 		},
 	}
 	depCmd.Flags().Bool("show-lib", false, "是否展示依赖")
+	depCmd.Flags().String("al2fp", "", "指定同时打印到文件csv文件路径")
 	jarCmd.AddCommand(depCmd)
 
 	versionCmd := &cobra.Command{
