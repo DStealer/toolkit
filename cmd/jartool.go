@@ -295,6 +295,7 @@ func init() {
 	jarCmd.AddCommand(verCheckZkCmd)
 }
 
+// parseVerCsvFileToMap 解析基准文件
 func parseEntry(path string) ([]Project, error) {
 	stat, err := os.Stat(path)
 	if err != nil {
@@ -349,6 +350,7 @@ func parseArtifactIdAndVersion(name string) (string, string) {
 	return name[:index], name[index+1:]
 }
 
+// parseProject 解析一个jar包
 func parseProject(path string) (Project, error) {
 	project := Project{
 		Name: filepath.Base(path),
