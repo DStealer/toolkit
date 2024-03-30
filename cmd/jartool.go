@@ -22,8 +22,6 @@ import (
 )
 
 var (
-	jarLib bool
-	jarLoc bool
 	jarCmd = &cobra.Command{
 		Use:   "jar subcommand [args]",
 		Short: "jar包依赖分析工具",
@@ -36,17 +34,17 @@ func init() {
 		Short: "解析jar包依赖",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			showJarLib, err := cmd.Flags().GetBool("show-lib")
+			cobra.CheckErr(err)
 			log.Info("**********解析开始***********")
 			projects, err := parseEntry(args[0])
 			cobra.CheckErr(err)
 			log.Info("**********结果分析***********")
 			for _, project := range projects {
 				fmt.Printf(
-					"--[%s] [%s] [%s]\n", project.Name, project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"))
-				if jarLoc {
-					fmt.Printf("  %s\n", project.Path)
-				}
-				if jarLib {
+					"--[%s] [%s] [%s] [%s]\n", project.Name, project.md5sum,
+					project.BuildTime.Format("2006-01-02 15:04:05"), project.Path)
+				if showJarLib {
 					for _, dep := range project.Deps {
 						if dep.Err == nil {
 							fmt.Println(
@@ -59,12 +57,11 @@ func init() {
 					}
 				}
 			}
+
 			log.Info("**********结束运行***********")
 		},
 	}
-
-	depCmd.Flags().BoolVar(&jarLib, "lib", jarLib, "是否展示依赖")
-	depCmd.Flags().BoolVar(&jarLoc, "loc", jarLoc, "是否展示真实路径")
+	depCmd.Flags().Bool("show-lib", false, "是否展示依赖")
 	jarCmd.AddCommand(depCmd)
 
 	versionCmd := &cobra.Command{
@@ -135,18 +132,14 @@ func init() {
 				}
 				if buffer.Len() > 0 {
 					fmt.Printf(
-						"--[%s] [%s] [%s]\n", project.Name, project.md5sum,
-						project.BuildTime.Format("2006-01-02 15:04:05"))
-					if jarLoc {
-						fmt.Printf("  %s\n", project.Path)
-					}
+						"--[%s] [%s] [%s] [%s]\n", project.Name, project.md5sum,
+						project.BuildTime.Format("2006-01-02 15:04:05"), project.Path)
 					fmt.Print(buffer.String())
 				}
 			}
 			log.Info("**********结束运行***********")
 		},
 	}
-	useCmd.Flags().BoolVar(&jarLoc, "loc", jarLoc, "是否展示真实路径")
 	jarCmd.AddCommand(useCmd)
 
 	serviceCmd := &cobra.Command{
