@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/ZZMarquis/gm/sm4"
 	auth "github.com/abbot/go-http-auth"
+	"github.com/bmatcuk/doublestar"
 	"github.com/containerd/containerd"
 	mysqlclient "github.com/go-mysql-org/go-mysql/client"
 	_ "github.com/go-mysql-org/go-mysql/driver"
@@ -890,4 +891,26 @@ func TestSSH(t *testing.T) {
 	err = session.Run("ls .")
 	cobra.CheckErr(err)
 	fmt.Println(stdoutBuf.String(), stderrBuf.String())
+}
+
+func TestJenkinsBuildGlob(t *testing.T) {
+	destDir := "/data/Temporary"
+	permalinksGlobPattern := filepath.Join(destDir, "b*", "permalinks")
+	matches, err := doublestar.Glob(permalinksGlobPattern)
+	cobra.CheckErr(err)
+	for _, match := range matches {
+		permalinks, err := ParsePermalinks(match)
+		cobra.CheckErr(err)
+		lastSuccessfulBuild, ok := permalinks["lastSuccessfulBuild"]
+		if !ok || lastSuccessfulBuild == "-1" || lastSuccessfulBuild == "0" {
+			continue
+		}
+		base := filepath.Dir(match)
+		archiveGlob := filepath.Join(base, lastSuccessfulBuild, "archive", "**", "*.jar")
+		archiveMatches, err := doublestar.Glob(archiveGlob)
+		cobra.CheckErr(err)
+		for _, archiveMatch := range archiveMatches {
+			fmt.Println(archiveMatch)
+		}
+	}
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"github.com/bmatcuk/doublestar"
 	"github.com/samuel/go-zookeeper/zk"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
@@ -38,11 +39,24 @@ func init() {
 			cobra.CheckErr(err)
 			al2fp, err := cmd.Flags().GetString("al2fp")
 			cobra.CheckErr(err)
-			log.Info("**********解析开始***********")
-			projects, err := parseEntry(args[0])
+			jenkinsProjectGlob, err := cmd.Flags().GetString("jenkins-project-glob")
 			cobra.CheckErr(err)
+			log.Info("**********解析开始***********")
+			parsedProjects := make([]Project, 0)
+			if jenkinsProjectGlob != "" {
+				log.Info("**********jenkins模式***********")
+				projects, err := parseJenkinsBuildsEntry(args[0], jenkinsProjectGlob)
+				cobra.CheckErr(err)
+				parsedProjects = append(parsedProjects, projects...)
+			} else {
+				log.Info("**********普通模式***********")
+				projects, err := parseNormalEntry(args[0])
+				cobra.CheckErr(err)
+				parsedProjects = append(parsedProjects, projects...)
+			}
+
 			log.Info("**********结果分析***********")
-			for _, project := range projects {
+			for _, project := range parsedProjects {
 				fmt.Printf(
 					"--[%s] [%s] [%s] [%s] [%s]\n", project.Name, If(project.IsSpringBoot, "是", "否"), project.md5sum,
 					project.BuildTime.Format("2006-01-02 15:04:05"), project.Path)
@@ -68,7 +82,7 @@ func init() {
 				defer f.Close()
 				w := csv.NewWriter(f)
 				w.Write([]string{"项目名称", "SpringBoot项目", "项目md5", "项目构建时间", "项目路径", "依赖名称", "依赖AR", "依赖版本号", "依赖md5", "依赖构建时间", "解析状态"})
-				for _, project := range projects {
+				for _, project := range parsedProjects {
 					for _, dep := range project.Deps {
 						if dep.Err != nil {
 							artifactId, version := parseArtifactIdAndVersion(dep.Name)
@@ -95,6 +109,8 @@ func init() {
 	}
 	depCmd.Flags().Bool("show-lib", false, "是否展示依赖")
 	depCmd.Flags().String("al2fp", "", "指定同时打印到文件csv文件路径")
+	depCmd.Flags().String(
+		"jenkins-project-glob", "", "使用jenkins builds project模式解析,此时第一个参数应该为jenkins的builds目录")
 	jarCmd.AddCommand(depCmd)
 
 	versionCmd := &cobra.Command{
@@ -103,7 +119,7 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info("**********解析开始***********")
-			projects, err := parseEntry(args[0])
+			projects, err := parseNormalEntry(args[0])
 			cobra.CheckErr(err)
 			log.Info("**********结果分析***********")
 			latestGpArVrMap := make(map[[2]string]string)
@@ -153,7 +169,7 @@ func init() {
 		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info("**********解析开始***********")
-			projects, err := parseEntry(args[0])
+			projects, err := parseNormalEntry(args[0])
 			cobra.CheckErr(err)
 			log.Info("**********结果分析***********")
 			for _, project := range projects {
@@ -229,7 +245,7 @@ func init() {
 			file, err := os.OpenFile(args[1], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
 			cobra.CheckErr(err)
 			log.Info("**********解析开始***********")
-			projects, err := parseEntry(args[0])
+			projects, err := parseNormalEntry(args[0])
 			cobra.CheckErr(err)
 			log.Info("**********结果分析***********")
 			sort.Slice(
@@ -329,7 +345,7 @@ func init() {
 }
 
 // parseVerCsvFileToMap 解析基准文件
-func parseEntry(path string) ([]Project, error) {
+func parseNormalEntry(path string) ([]Project, error) {
 	stat, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -365,6 +381,53 @@ func parseEntry(path string) ([]Project, error) {
 			return nil, err
 		}
 		projects = append(projects, project)
+	}
+	return projects, nil
+}
+
+// parseJenkinsBuildsEntry 按照jenkins builds目录结构解析jar包
+func parseJenkinsBuildsEntry(path string, projectGlob string) ([]Project, error) {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !stat.IsDir() {
+		return nil, errors.New("不是jenkins builds目录")
+	}
+	projects := make([]Project, 0)
+
+	permalinksGlobPattern := filepath.Join(path, projectGlob, "permalinks")
+	matches, err := doublestar.Glob(permalinksGlobPattern)
+	if err != nil {
+		return nil, err
+	}
+	for _, match := range matches {
+		permalinks, err := ParsePermalinks(match)
+		if err != nil {
+			log.Warnf("解析:%s失败", match)
+			continue
+		}
+		log.Infof("开始解析项目:%s", permalinks)
+		lastSuccessfulBuild, ok := permalinks["lastSuccessfulBuild"]
+		if !ok || lastSuccessfulBuild == "-1" || lastSuccessfulBuild == "0" {
+			log.Warnf("项目:%s没有构建成功", permalinks)
+			continue
+		}
+		base := filepath.Dir(match)
+		archiveGlob := filepath.Join(base, lastSuccessfulBuild, "archive", "**", "*.jar")
+		archiveMatches, err := doublestar.Glob(archiveGlob)
+		if err != nil {
+			log.Warnf("解析构件地址:%s失败", archiveGlob)
+			continue
+		}
+		for _, archiveMatch := range archiveMatches {
+			project, err := parseProject(archiveMatch)
+			if err != nil {
+				log.Warnf("解析构件:%s失败", archiveMatch)
+				continue
+			}
+			projects = append(projects, project)
+		}
 	}
 	return projects, nil
 }

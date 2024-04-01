@@ -317,3 +317,26 @@ func If(condition bool, trueVal, falseVal interface{}) interface{} {
 	}
 	return falseVal
 }
+
+// ParsePermalinks 函数用于解析jenkins Permalinks 文件，返回一个map[string]string类型的变量
+func ParsePermalinks(filePath string) (map[string]string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	var buildInfo = make(map[string]string)
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.Fields(line)
+		if len(parts) != 2 {
+			continue // Skip invalid lines
+		}
+		buildInfo[parts[0]] = parts[1]
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return buildInfo, nil
+}
