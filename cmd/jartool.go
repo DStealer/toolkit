@@ -407,10 +407,10 @@ func parseJenkinsBuildsEntry(path string, projectGlob string) ([]Project, error)
 			log.Warnf("解析:%s失败", match)
 			continue
 		}
-		log.Infof("开始解析项目:%s", permalinks)
+		log.Infof("开始解析项目:%s", match)
 		lastSuccessfulBuild, ok := permalinks["lastSuccessfulBuild"]
 		if !ok || lastSuccessfulBuild == "-1" || lastSuccessfulBuild == "0" {
-			log.Warnf("项目:%s没有构建成功", permalinks)
+			log.Warnf("项目:%s没有构建成功", match)
 			continue
 		}
 		base := filepath.Dir(match)
