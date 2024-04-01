@@ -15,17 +15,21 @@ VERSION_GIT_DIRTY := $(shell git diff --no-ext-diff 2>/dev/null | wc -l | awk '{
 LDFLAGS=-ldflags="-s -w -X 'github.com/dstealer/devops/cmd.Version=$(VERSION_VERSION)' -X 'github.com/dstealer/devops/cmd.Compile=$(VERSION_COMPILE)' -X 'github.com/dstealer/devops/cmd.Branch=$(VERSION_BRANCH)' -X 'github.com/dstealer/devops/cmd.GitDirty=$(VERSION_GIT_DIRTY)'"
 
 .PHONY: build-linux
-build-linux:
+build-linux: clean
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64  go build -v ${LDFLAGS} ${GCFLAGS} -o dist/tk-linux
 
 .PHONY: build-win
-build-win:
+build-win: clean
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64  go build -v ${LDFLAGS} ${GCFLAGS} -o dist/tk-win.exe
 
 .PHONY: build-darwin
-build-darwin:
+build-darwin: clean
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64  go build -v ${LDFLAGS} ${GCFLAGS} -o dist/tk-darwin
 
 .PHONY: docker
 docker:
 	docker run --rm -e "GOPROXY=https://goproxy.io" -e "GO111MODULE=auto" -v $(shell pwd):/srv -w /srv amd64/golang:1.19 go build -v ${LDFLAGS} ${GCFLAGS} -o tk
+
+.PHONY: clean
+clean:
+	rm -rf ./dist/
