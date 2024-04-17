@@ -28,7 +28,7 @@ build-darwin: clean
 
 .PHONY: docker
 docker:
-	docker run --rm -e "GOPROXY=https://goproxy.io" -e "GO111MODULE=auto" -v $(shell pwd):/srv -w /srv amd64/golang:1.19 go build -v ${LDFLAGS} ${GCFLAGS} -o tk
+	docker run --rm -e "GOPROXY=https://goproxy.io" -e "GO111MODULE=auto" -v $(shell pwd):/srv -w /srv amd64/golang:1.19 go build -v ${LDFLAGS} ${GCFLAGS} -o tk-linux
 
 .PHONY: clean
 clean:
