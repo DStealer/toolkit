@@ -253,7 +253,7 @@ func init() {
 					return strings.Compare(projects[i].ArtifactId, projects[j].ArtifactId) < 0
 				})
 			if len(args) == 1 {
-				fmt.Println("序号\t项目名称\t项目文件\t构建时间\tMd5值\t提交ID\t提交时间\t提交人\t提交人邮箱\t提交信息")
+				fmt.Println("序号 项目名称 项目文件 构建时间 Md5值 提交ID 提交时间 提交人 提交人邮箱 提交信息")
 				entries := make(map[string]struct{}, 16)
 				indexColumn := 0
 				for _, project := range projects {
@@ -264,7 +264,7 @@ func init() {
 					entries[project.ArtifactId] = struct{}{}
 					indexColumn++
 					_, err := fmt.Printf(
-						"%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", indexColumn, project.ArtifactId, project.Name,
+						"%d %s %s %s %s %s %s %s %s %s\n", indexColumn, project.ArtifactId, project.Name,
 						project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum,
 						project.GitProps.GetString("git.commit.id", ""), project.GitProps.GetString(
 							"git.commit.time", ""), project.GitProps.GetString("git.commit.user.name", ""),
