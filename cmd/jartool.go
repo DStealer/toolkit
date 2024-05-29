@@ -362,8 +362,8 @@ func init() {
 					basicEntry := value[0]
 					fmt.Printf(
 						"%s,%s,%s,%s,%d nodes\n", basicEntry.Title,
-						basicEntry.BuildTime.Format("2006-01-02T15:04:05+0800"),
-						basicEntry.Md5sum, basicEntry.Source, len(value)-1)
+						basicEntry.BuildTime.Format("2006-01-02T15:04:05+0800"), basicEntry.Md5sum, basicEntry.Source,
+						len(value)-1)
 					for i := 1; i < len(value); i++ {
 						fmt.Printf(
 							"\t%s,%s,%s,%s,%s,%s,%s\n", value[i].Title,
@@ -483,8 +483,9 @@ func parseArtifactIdAndVersion(name string) (string, string) {
 // parseProject 解析一个jar包
 func parseProject(path string) (Project, error) {
 	project := Project{
-		Name: filepath.Base(path),
-		Path: path,
+		Name:     filepath.Base(path),
+		Path:     path,
+		GitProps: properties.NewProperties(),
 	}
 	log.Infof("解析[%s]\n", project.Path)
 	md5Sum, err := Md5Sum(path)
@@ -517,9 +518,8 @@ func parseProject(path string) (Project, error) {
 			gitProps, err := ReadProperties(fileEntry)
 			if err != nil {
 				log.Warn("git.properties损坏,跳过读取!", err)
-				project.GitProps = properties.NewProperties()
 			} else {
-				project.GitProps = gitProps
+				project.GitProps.Merge(gitProps)
 			}
 		} else if strings.HasSuffix(fileEntry.Name, ".jar") { //解析依赖jar包
 			jarFileEntryReader, err := ConvertZipFileToReader(fileEntry)
