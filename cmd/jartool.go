@@ -240,7 +240,7 @@ func init() {
 	verLockCmd := &cobra.Command{
 		Use:   "verlock path file.csv",
 		Short: "记录指定目录或指定jar包springboot项目版本信息",
-		Args:  cobra.RangeArgs(1, 2),
+		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info("**********解析准备*******")
 			file, err := os.OpenFile(args[1], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
