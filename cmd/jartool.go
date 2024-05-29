@@ -278,7 +278,7 @@ func init() {
 				cobra.CheckErr(err)
 				defer file.Close()
 				csvWriter := csv.NewWriter(file)
-				csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值", "提交ID", "提交时间", "提交人", "提交人邮箱", "提交信息"})
+				csvWriter.Write([]string{"项目文件", "构建时间", "Md5值", "提交ID", "提交时间", "提交人", "提交人邮箱", "提交信息"})
 				entries := make(map[string]struct{}, 16)
 				for _, project := range projects {
 					// 重复项目忽略
@@ -288,7 +288,7 @@ func init() {
 					entries[project.ArtifactId] = struct{}{}
 
 					err := csvWriter.Write(
-						[]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02T15:04:05+0800"), project.md5sum,
+						[]string{project.Name, project.BuildTime.Format("2006-01-02T15:04:05+0800"), project.md5sum,
 							project.GitProps.GetString("git.commit.id", ""), project.GitProps.GetString(
 								"git.commit.time", ""), project.GitProps.GetString("git.commit.user.name", ""),
 							project.GitProps.GetString(
