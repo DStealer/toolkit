@@ -487,8 +487,8 @@ func parseProject(path string) (Project, error) {
 		} else if strings.HasSuffix(fileEntry.Name, "git.properties") { //解析git提交信息
 			gitProps, err := ReadProperties(fileEntry)
 			if err != nil {
-				log.Warn("git.properties损坏,跳过读取!")
-				project.GitProps = nil
+				log.Warn("git.properties损坏,跳过读取!", err)
+				project.GitProps = properties.NewProperties()
 			} else {
 				project.GitProps = gitProps
 			}
