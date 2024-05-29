@@ -254,7 +254,7 @@ func init() {
 				})
 			defer file.Close()
 			csvWriter := csv.NewWriter(file)
-			csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值"})
+			csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值", "提交ID", "提交时间", "提交人", "提交人邮箱"})
 			entries := make(map[string]struct{}, 16)
 			for _, project := range projects {
 				if _, ok := entries[project.ArtifactId]; ok {
@@ -262,7 +262,12 @@ func init() {
 				}
 				entries[project.ArtifactId] = struct{}{}
 
-				csvWriter.Write([]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum})
+				csvWriter.Write(
+					[]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum,
+						GetMapValue(project.GitProps, "git.commit.id"), GetMapValue(
+							project.GitProps, "git.commit.time"),
+						GetMapValue(project.GitProps, "git.commit.user.name"), GetMapValue(
+							project.GitProps, "git.commit.user.email")})
 			}
 			csvWriter.Flush()
 			if absPath, err := filepath.Abs(args[1]); err == nil {
@@ -478,6 +483,14 @@ func parseProject(path string) (Project, error) {
 			project.Version = props["version"]
 		} else if strings.HasSuffix(fileEntry.Name, "MANIFEST.MF") { //通过MANIFEST.MF解析时间
 			project.BuildTime = fileEntry.Modified
+		} else if strings.HasSuffix(fileEntry.Name, "git.properties") { //解析git提交信息
+			gitProps, err := ConvertPropertiesToMap(fileEntry)
+			if err != nil {
+				log.Warn("git.properties损坏,跳过读取!")
+				project.GitProps = nil
+			} else {
+				project.GitProps = gitProps
+			}
 		} else if strings.HasSuffix(fileEntry.Name, ".jar") { //解析依赖jar包
 			jarFileEntryReader, err := ConvertZipFileToReader(fileEntry)
 			if err != nil {
@@ -636,6 +649,7 @@ type Project struct {
 	BuildTime    time.Time
 	md5sum       string
 	IsSpringBoot bool
+	GitProps     map[string]string
 	Deps         []Dep
 	Err          error
 }

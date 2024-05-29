@@ -8,6 +8,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -339,4 +340,16 @@ func ParsePermalinks(filePath string) (map[string]string, error) {
 		return nil, err
 	}
 	return buildInfo, nil
+}
+
+// GetMapValue 函数用于判断map[interface{}]interface{}类型的mp是否为nil，如果为nil则返回空字符串；否则返回
+func GetMapValue(mp map[string]string, k string) string {
+	if mp == nil {
+		return ""
+	}
+	if v, ok := mp[k]; ok {
+		return fmt.Sprintf("%v", v)
+	} else {
+		return ""
+	}
 }
