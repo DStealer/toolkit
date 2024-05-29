@@ -12,6 +12,7 @@ require (
 	github.com/go-mysql-org/go-mysql v1.7.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/heroku/docker-registry-client v0.0.0-20211012143308-9463674c8930
+	github.com/magiconair/properties v1.8.1
 	github.com/pingcap/tidb/parser v0.0.0-20230620045341-88125c60eed1
 	github.com/prometheus/common v0.10.0
 	github.com/robfig/cron v1.2.0

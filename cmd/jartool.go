@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bmatcuk/doublestar"
+	"github.com/magiconair/properties"
 	"github.com/samuel/go-zookeeper/zk"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
@@ -264,10 +265,9 @@ func init() {
 
 				csvWriter.Write(
 					[]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum,
-						GetMapValue(project.GitProps, "git.commit.id"), GetMapValue(
-							project.GitProps, "git.commit.time"),
-						GetMapValue(project.GitProps, "git.commit.user.name"), GetMapValue(
-							project.GitProps, "git.commit.user.email")})
+						project.GitProps.GetString("git.commit.id", ""), project.GitProps.GetString(
+							"git.commit.time", ""), project.GitProps.GetString("git.commit.user.name", ""),
+						project.GitProps.GetString("git.commit.user.email", "")})
 			}
 			csvWriter.Flush()
 			if absPath, err := filepath.Abs(args[1]); err == nil {
@@ -471,20 +471,21 @@ func parseProject(path string) (Project, error) {
 	}
 	defer archive.Close()
 	for _, fileEntry := range archive.File {
-		if strings.HasSuffix(fileEntry.Name, "pom.properties") { //解析pom.properties
-			props, err := ConvertPropertiesToMap(fileEntry)
+		if strings.HasSuffix(fileEntry.Name, "pom.properties") { //解析pom.properties NewProperties
+
+			props, err := ReadProperties(fileEntry)
 			if err != nil {
 				log.Warn("pom.properties损坏,跳过读取!")
 				project.Err = errors.New("pom.properties损坏")
 				continue
 			}
-			project.GroupId = props["groupId"]
-			project.ArtifactId = props["artifactId"]
-			project.Version = props["version"]
+			project.GroupId = props.MustGet("groupId")
+			project.ArtifactId = props.MustGet("artifactId")
+			project.Version = props.MustGet("version")
 		} else if strings.HasSuffix(fileEntry.Name, "MANIFEST.MF") { //通过MANIFEST.MF解析时间
 			project.BuildTime = fileEntry.Modified
 		} else if strings.HasSuffix(fileEntry.Name, "git.properties") { //解析git提交信息
-			gitProps, err := ConvertPropertiesToMap(fileEntry)
+			gitProps, err := ReadProperties(fileEntry)
 			if err != nil {
 				log.Warn("git.properties损坏,跳过读取!")
 				project.GitProps = nil
@@ -512,7 +513,7 @@ func parseProject(path string) (Project, error) {
 			pomFound := false
 			for _, jfe := range jarFileEntryReader.File {
 				if strings.HasSuffix(jfe.Name, "pom.properties") {
-					props, err := ConvertPropertiesToMap(jfe)
+					props, err := ReadProperties(jfe)
 					if err != nil {
 						project.Deps = append(
 							project.Deps, Dep{
@@ -532,9 +533,9 @@ func parseProject(path string) (Project, error) {
 						project.Deps, Dep{
 							Name:       filepath.Base(fileEntry.Name),
 							Path:       fileEntry.Name,
-							GroupId:    props["groupId"],
-							ArtifactId: props["artifactId"],
-							Version:    props["version"],
+							GroupId:    props.MustGet("groupId"),
+							ArtifactId: props.MustGet("artifactId"),
+							Version:    props.MustGet("version"),
 							BuildTime:  fileEntry.Modified,
 							Md5Str:     md5Str,
 						})
@@ -649,7 +650,7 @@ type Project struct {
 	BuildTime    time.Time
 	md5sum       string
 	IsSpringBoot bool
-	GitProps     map[string]string
+	GitProps     *properties.Properties
 	Deps         []Dep
 	Err          error
 }

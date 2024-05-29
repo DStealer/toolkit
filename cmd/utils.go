@@ -8,7 +8,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"errors"
-	"fmt"
+	"github.com/magiconair/properties"
 	"io"
 	"net"
 	"net/http"
@@ -48,24 +48,18 @@ func Md5Sum(path string) (string, error) {
 	}
 }
 
-// ConvertPropertiesToMap 将Properties转换成map
-func ConvertPropertiesToMap(file *zip.File) (map[string]string, error) {
-	result := make(map[string]string)
+// ReadProperties 将Properties转换成map
+func ReadProperties(file *zip.File) (*properties.Properties, error) {
 	handler, err := file.Open()
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 	defer handler.Close()
-	reader := bufio.NewReader(handler)
-	for line, err := reader.ReadString('\n'); err == nil; line, err = reader.ReadString('\n') {
-		line = strings.TrimSpace(line)
-		if len(line) == 0 || strings.HasPrefix(line, "#") {
-			continue
-		}
-		splitN := strings.SplitN(line, "=", 2)
-		result[splitN[0]] = splitN[1]
+	bts, err := io.ReadAll(handler)
+	if err != nil {
+		return nil, err
 	}
-	return result, nil
+	return properties.Load(bts, properties.ISO_8859_1)
 }
 
 // ConvertZipFileToReader 将zip file转换成 zip.reader
@@ -340,16 +334,4 @@ func ParsePermalinks(filePath string) (map[string]string, error) {
 		return nil, err
 	}
 	return buildInfo, nil
-}
-
-// GetMapValue 函数用于判断map[interface{}]interface{}类型的mp是否为nil，如果为nil则返回空字符串；否则返回
-func GetMapValue(mp map[string]string, k string) string {
-	if mp == nil {
-		return ""
-	}
-	if v, ok := mp[k]; ok {
-		return fmt.Sprintf("%v", v)
-	} else {
-		return ""
-	}
 }
