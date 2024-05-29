@@ -238,13 +238,12 @@ func init() {
 	jarCmd.AddCommand(serviceCmd)
 
 	verLockCmd := &cobra.Command{
-		Use:   "verlock path file.csv",
+		Use:   "verlock path [file.csv]",
 		Short: "记录指定目录或指定jar包springboot项目版本信息",
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.RangeArgs(1, 2),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info("**********解析准备*******")
-			file, err := os.OpenFile(args[1], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
-			cobra.CheckErr(err)
+
 			log.Info("**********解析开始***********")
 			projects, err := parseNormalEntry(args[0])
 			cobra.CheckErr(err)
@@ -253,30 +252,56 @@ func init() {
 				projects, func(i, j int) bool {
 					return strings.Compare(projects[i].ArtifactId, projects[j].ArtifactId) < 0
 				})
-			defer file.Close()
-			csvWriter := csv.NewWriter(file)
-			csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值", "提交ID", "提交时间", "提交人", "提交人邮箱", "提交信息"})
-			entries := make(map[string]struct{}, 16)
-			for _, project := range projects {
-				// 重复项目忽略
-				if _, ok := entries[project.ArtifactId]; ok {
-					cobra.CheckErr(fmt.Sprintf("项目title:[%s] [%s]重复", project.ArtifactId, project.Name))
-				}
-				entries[project.ArtifactId] = struct{}{}
-
-				err := csvWriter.Write(
-					[]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum,
+			if len(args) == 1 {
+				fmt.Println("序号\t项目名称\t项目文件\t构建时间\tMd5值\t提交ID\t提交时间\t提交人\t提交人邮箱\t提交信息")
+				entries := make(map[string]struct{}, 16)
+				indexColumn := 0
+				for _, project := range projects {
+					// 重复项目忽略
+					if _, ok := entries[project.ArtifactId]; ok {
+						cobra.CheckErr(fmt.Sprintf("项目title:[%s] [%s]重复", project.ArtifactId, project.Name))
+					}
+					entries[project.ArtifactId] = struct{}{}
+					indexColumn++
+					_, err := fmt.Printf(
+						"%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", indexColumn, project.ArtifactId, project.Name,
+						project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum,
 						project.GitProps.GetString("git.commit.id", ""), project.GitProps.GetString(
 							"git.commit.time", ""), project.GitProps.GetString("git.commit.user.name", ""),
-						project.GitProps.GetString(
-							"git.commit.user.email", ""), project.GitProps.GetString("git.commit.message.full", "")})
-				cobra.CheckErr(err)
-			}
-			csvWriter.Flush()
-			if absPath, err := filepath.Abs(args[1]); err == nil {
-				log.Infof("统计数据:%d条,写入:%s", len(projects), absPath)
+						project.GitProps.GetString("git.commit.user.email", ""),
+						project.GitProps.GetString("git.commit.message.full", ""))
+					cobra.CheckErr(err)
+				}
+				log.Infof("统计数据:%d条", len(projects))
 			} else {
-				log.Infof("统计数据:%d条,写入:%s", len(projects), args[1])
+				file, err := os.OpenFile(args[1], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+				cobra.CheckErr(err)
+				defer file.Close()
+				csvWriter := csv.NewWriter(file)
+				csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值", "提交ID", "提交时间", "提交人", "提交人邮箱", "提交信息"})
+				entries := make(map[string]struct{}, 16)
+				for _, project := range projects {
+					// 重复项目忽略
+					if _, ok := entries[project.ArtifactId]; ok {
+						cobra.CheckErr(fmt.Sprintf("项目title:[%s] [%s]重复", project.ArtifactId, project.Name))
+					}
+					entries[project.ArtifactId] = struct{}{}
+
+					err := csvWriter.Write(
+						[]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum,
+							project.GitProps.GetString("git.commit.id", ""), project.GitProps.GetString(
+								"git.commit.time", ""), project.GitProps.GetString("git.commit.user.name", ""),
+							project.GitProps.GetString(
+								"git.commit.user.email", ""), project.GitProps.GetString(
+								"git.commit.message.full", "")})
+					cobra.CheckErr(err)
+				}
+				csvWriter.Flush()
+				if absPath, err := filepath.Abs(args[1]); err == nil {
+					log.Infof("统计数据:%d条,写入:%s", len(projects), absPath)
+				} else {
+					log.Infof("统计数据:%d条,写入:%s", len(projects), args[1])
+				}
 			}
 			log.Info("**********结束运行***********")
 		},
