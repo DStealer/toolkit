@@ -240,7 +240,7 @@ func init() {
 	verLockCmd := &cobra.Command{
 		Use:   "verlock path file.csv",
 		Short: "记录指定目录或指定jar包springboot项目版本信息",
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.RangeArgs(1, 2),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info("**********解析准备*******")
 			file, err := os.OpenFile(args[1], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
@@ -258,17 +258,19 @@ func init() {
 			csvWriter.Write([]string{"项目名称", "项目文件", "构建时间", "Md5值", "提交ID", "提交时间", "提交人", "提交人邮箱", "提交信息"})
 			entries := make(map[string]struct{}, 16)
 			for _, project := range projects {
+				// 重复项目忽略
 				if _, ok := entries[project.ArtifactId]; ok {
 					cobra.CheckErr(fmt.Sprintf("项目title:[%s] [%s]重复", project.ArtifactId, project.Name))
 				}
 				entries[project.ArtifactId] = struct{}{}
 
-				csvWriter.Write(
+				err := csvWriter.Write(
 					[]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum,
 						project.GitProps.GetString("git.commit.id", ""), project.GitProps.GetString(
 							"git.commit.time", ""), project.GitProps.GetString("git.commit.user.name", ""),
 						project.GitProps.GetString(
 							"git.commit.user.email", ""), project.GitProps.GetString("git.commit.message.full", "")})
+				cobra.CheckErr(err)
 			}
 			csvWriter.Flush()
 			if absPath, err := filepath.Abs(args[1]); err == nil {
