@@ -60,18 +60,18 @@ func init() {
 			for _, project := range parsedProjects {
 				fmt.Printf(
 					"--[%s] [%s] [%s] [%s] [%s]\n", project.Name, If(project.IsSpringBoot, "是", "否"), project.md5sum,
-					project.BuildTime.Format("2006-01-02 15:04:05"), project.Path)
+					project.BuildTime.Format("2006-01-02T15:04:05+0800"), project.Path)
 				if showJarLib {
 					for _, dep := range project.Deps {
 						if dep.Err != nil {
 							artifactId, version := parseArtifactIdAndVersion(dep.Name)
 							fmt.Println(
 								"  ", dep.Name, "\t", artifactId, "\t", version, "\t", dep.Md5Str, "\t",
-								dep.BuildTime.Format("2006-01-02 15:04:05"), "\t", dep.Err.Error())
+								dep.BuildTime.Format("2006-01-02T15:04:05+0800"), "\t", dep.Err.Error())
 						} else {
 							fmt.Println(
 								"  ", dep.Name, "\t", dep.ArtifactId, "\t", dep.Version, "\t", dep.Md5Str, "\t",
-								dep.BuildTime.Format("2006-01-02 15:04:05"), "\t", "√")
+								dep.BuildTime.Format("2006-01-02T15:04:05+0800"), "\t", "√")
 						}
 					}
 				}
@@ -91,16 +91,16 @@ func init() {
 								[]string{project.Name, fmt.Sprintf(
 									"%s", If(
 										project.IsSpringBoot, "是",
-										"否")), project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
-									project.Path, dep.Name, artifactId, version, dep.Md5Str, dep.BuildTime.Format("2006-01-02 15:04:05"), dep.Err.Error()})
+										"否")), project.md5sum, project.BuildTime.Format("2006-01-02T15:04:05+0800"),
+									project.Path, dep.Name, artifactId, version, dep.Md5Str, dep.BuildTime.Format("2006-01-02T15:04:05+0800"), dep.Err.Error()})
 						} else {
 							w.Write(
 								[]string{project.Name, fmt.Sprintf(
 									"%s", If(
 										project.IsSpringBoot, "是",
-										"否")), project.md5sum, project.BuildTime.Format("2006-01-02 15:04:05"),
+										"否")), project.md5sum, project.BuildTime.Format("2006-01-02T15:04:05+0800"),
 									project.Path, dep.Name, dep.ArtifactId, dep.Version, dep.Md5Str,
-									dep.BuildTime.Format("2006-01-02 15:04:05"), "√"})
+									dep.BuildTime.Format("2006-01-02T15:04:05+0800"), "√"})
 						}
 					}
 				}
@@ -155,7 +155,7 @@ func init() {
 				if buffer.Len() > 0 {
 					fmt.Printf(
 						"项目%s 编译时间:%s,当前升级推荐\n%s", project.Name,
-						project.BuildTime.Format("2006-01-02 15:04:05"), buffer.String())
+						project.BuildTime.Format("2006-01-02T15:04:05+0800"), buffer.String())
 				}
 			}
 
@@ -183,7 +183,7 @@ func init() {
 				if buffer.Len() > 0 {
 					fmt.Printf(
 						"--[%s] [%s] [%s] [%s]\n", project.Name, project.md5sum,
-						project.BuildTime.Format("2006-01-02 15:04:05"), project.Path)
+						project.BuildTime.Format("2006-01-02T15:04:05+0800"), project.Path)
 					fmt.Print(buffer.String())
 				}
 			}
@@ -265,7 +265,7 @@ func init() {
 					indexColumn++
 					_, err := fmt.Printf(
 						"%d %s %s %s %s %s %s %s %s %s\n", indexColumn, project.ArtifactId, project.Name,
-						project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum,
+						project.BuildTime.Format("2006-01-02T15:04:05+0800"), project.md5sum,
 						project.GitProps.GetString("git.commit.id", ""), project.GitProps.GetString(
 							"git.commit.time", ""), project.GitProps.GetString("git.commit.user.name", ""),
 						project.GitProps.GetString("git.commit.user.email", ""),
@@ -288,7 +288,7 @@ func init() {
 					entries[project.ArtifactId] = struct{}{}
 
 					err := csvWriter.Write(
-						[]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02 15:04:05"), project.md5sum,
+						[]string{project.ArtifactId, project.Name, project.BuildTime.Format("2006-01-02T15:04:05+0800"), project.md5sum,
 							project.GitProps.GetString("git.commit.id", ""), project.GitProps.GetString(
 								"git.commit.time", ""), project.GitProps.GetString("git.commit.user.name", ""),
 							project.GitProps.GetString(
@@ -361,13 +361,14 @@ func init() {
 				if value, ok := jarFileEntryMap[title]; ok {
 					basicEntry := value[0]
 					fmt.Printf(
-						"%s,%s,%s,%s,%d nodes\n", basicEntry.Title, basicEntry.BuildTime.Format("2006-01-02 15:04:05"),
+						"%s,%s,%s,%s,%d nodes\n", basicEntry.Title,
+						basicEntry.BuildTime.Format("2006-01-02T15:04:05+0800"),
 						basicEntry.Md5sum, basicEntry.Source, len(value)-1)
 					for i := 1; i < len(value); i++ {
 						fmt.Printf(
 							"\t%s,%s,%s,%s,%s,%s,%s\n", value[i].Title,
-							value[i].BuildTime.Format("2006-01-02 15:04:05"), value[i].Md5sum, value[i].Host,
-							value[i].Source, value[i].Uptime.Format("2006-01-02 15:04:05"), value[i].Err)
+							value[i].BuildTime.Format("2006-01-02T15:04:05+0800"), value[i].Md5sum, value[i].Host,
+							value[i].Source, value[i].Uptime.Format("2006-01-02T15:04:05+0800"), value[i].Err)
 					}
 				}
 			}
@@ -640,7 +641,7 @@ func parseVerCsvFileToMap(path string) (map[string][]JarFileEntry, error) {
 	}
 	entries := make(map[string][]JarFileEntry, 16)
 	for _, line := range lines {
-		buildTime, err := time.Parse("2006-01-02 15:04:05", line[2])
+		buildTime, err := time.Parse("2006-01-02T15:04:05+0800", line[2])
 		if err != nil {
 			log.Warnf("解析时间[%s] %v", line[2], err)
 		}
