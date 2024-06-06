@@ -232,12 +232,14 @@ func init() {
 				}
 			}
 			log.Infof("成功统计信息:")
+			fmt.Println("序号", "包名", "项目", "构建序号", "Md5", "原始路径")
 			for idx, pkg := range succPkgcInfos {
-				fmt.Println(idx+1, " ", pkg.Name, " ", pkg.Project, " ", pkg.Build, " ", pkg.Md5, " ", pkg.Path)
+				fmt.Println(idx+1, pkg.Name, pkg.Project, pkg.Build, pkg.Md5, pkg.Path)
 			}
 			log.Infof("失败统计信息:")
+			fmt.Println("序号", "包名")
 			for idx, jarFileName := range failedJarFileNames {
-				fmt.Println(idx+1, " ", jarFileName)
+				fmt.Println(idx+1, jarFileName)
 			}
 			log.Infof("处理完成,总计:%d,成功:%d", totalNum, len(succPkgcInfos))
 
