@@ -215,7 +215,7 @@ func init() {
 					continue
 				}
 				totalNum = totalNum + 1
-				log.Infof("处理第个文件:%s", totalNum, jarFileName)
+				log.Infof("处理第%d个文件:%s", totalNum, jarFileName)
 				if pkgInfo, ok := pkgInfoMap[jarFileName]; ok {
 					log.Infof("包信息:%v", pkgInfo)
 					srcFile, err := os.OpenFile(pkgInfo.Path, os.O_RDONLY, 0644)
