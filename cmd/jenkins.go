@@ -181,7 +181,9 @@ func init() {
 				}
 				for _, archiveMatch := range archiveMatches {
 					name := filepath.Base(archiveMatch)
-					pkgInfo := GetPkgInfo{Name: name, Project: "", Path: archiveMatch, Build: lastSuccessfulBuild, Md5: ""}
+					md5Sum, err := Md5Sum(archiveMatch)
+					cobra.CheckErr(err)
+					pkgInfo := GetPkgInfo{Name: name, Project: "", Path: archiveMatch, Build: lastSuccessfulBuild, Md5: md5Sum}
 					if oldPkgInfo, ok := pkgInfoMap[name]; !ok {
 						pkgInfoMap[name] = pkgInfo
 					} else {
@@ -193,8 +195,8 @@ func init() {
 			cobra.CheckErr(err)
 			defer fileHandler.Close()
 			reader := bufio.NewReader(fileHandler)
-			total := 0
-			success := 0
+			totalNum := 0
+			succPkgcInfos := make([]GetPkgInfo, 0, 16)
 			for {
 				line, _, err := reader.ReadLine()
 				if err == io.EOF {
@@ -209,9 +211,10 @@ func init() {
 					continue
 				}
 
-				total = total + 1
-				log.Infof("处理第个文件:%s", total, jarFileName)
+				totalNum = totalNum + 1
+				log.Infof("处理第个文件:%s", totalNum, jarFileName)
 				if pkgInfo, ok := pkgInfoMap[jarFileName]; ok {
+					log.Infof("包信息:%v", pkgInfo)
 					srcFile, err := os.OpenFile(pkgInfo.Path, os.O_RDONLY, 0644)
 					cobra.CheckErr(err)
 					defer srcFile.Close()
@@ -220,13 +223,17 @@ func init() {
 					defer dstFile.Close()
 					_, err = io.Copy(dstFile, srcFile)
 					cobra.CheckErr(err)
-
-					success = success + 1
+					succPkgcInfos = append(succPkgcInfos, pkgInfo)
 				} else {
 					log.Warnf("没有找到文件:%s", jarFileName)
 				}
 			}
-			log.Infof("处理完成,总计:%d,成功:%d", total, success)
+			log.Infof("统计信息:")
+			for idx, pkg := range succPkgcInfos {
+				fmt.Println(idx, " ", pkg.Name, " ", pkg.Project, " ", pkg.Build, " ", pkg.Md5, " ", pkg.Path)
+			}
+			log.Infof("处理完成,总计:%d,成功:%d", totalNum, len(succPkgcInfos))
+
 		},
 	}
 
