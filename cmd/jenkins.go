@@ -161,9 +161,8 @@ func init() {
 			cobra.CheckErr(err)
 			pkgInfoMap := make(map[string]GetPkgInfo)
 			for _, match := range matches {
-				pathList := filepath.SplitList(match)
-				projectName := pathList[len(pathList)-1]
-
+				dir, _ := filepath.Split(match)
+				projectName := filepath.Base(dir)
 				permalinks, err := ParsePermalinks(match)
 				if err != nil {
 					log.Warnf("解析:%s失败", match)
