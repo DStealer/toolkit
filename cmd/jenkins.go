@@ -200,6 +200,7 @@ func init() {
 			reader := bufio.NewReader(fileHandler)
 			totalNum := 0
 			succPkgcInfos := make([]GetPkgInfo, 0, 16)
+			failedJarFileNames := make([]string, 0, 8)
 			for {
 				line, _, err := reader.ReadLine()
 				if err == io.EOF {
@@ -213,7 +214,6 @@ func init() {
 					log.Infof("忽略注释行:%s", jarFileName)
 					continue
 				}
-
 				totalNum = totalNum + 1
 				log.Infof("处理第个文件:%s", totalNum, jarFileName)
 				if pkgInfo, ok := pkgInfoMap[jarFileName]; ok {
@@ -229,11 +229,16 @@ func init() {
 					succPkgcInfos = append(succPkgcInfos, pkgInfo)
 				} else {
 					log.Warnf("没有找到文件:%s", jarFileName)
+					failedJarFileNames = append(failedJarFileNames, jarFileName)
 				}
 			}
-			log.Infof("统计信息:")
+			log.Infof("成功统计信息:")
 			for idx, pkg := range succPkgcInfos {
-				fmt.Println(idx, " ", pkg.Name, " ", pkg.Project, " ", pkg.Build, " ", pkg.Md5, " ", pkg.Path)
+				fmt.Println(idx+1, " ", pkg.Name, " ", pkg.Project, " ", pkg.Build, " ", pkg.Md5, " ", pkg.Path)
+			}
+			log.Infof("失败统计信息:")
+			for idx, jarFileName := range failedJarFileNames {
+				fmt.Println(idx+1, " ", jarFileName)
 			}
 			log.Infof("处理完成,总计:%d,成功:%d", totalNum, len(succPkgcInfos))
 
