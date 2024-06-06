@@ -161,6 +161,9 @@ func init() {
 			cobra.CheckErr(err)
 			pkgInfoMap := make(map[string]GetPkgInfo)
 			for _, match := range matches {
+				pathList := filepath.SplitList(match)
+				projectName := pathList[len(pathList)-1]
+
 				permalinks, err := ParsePermalinks(match)
 				if err != nil {
 					log.Warnf("解析:%s失败", match)
@@ -183,7 +186,7 @@ func init() {
 					name := filepath.Base(archiveMatch)
 					md5Sum, err := Md5Sum(archiveMatch)
 					cobra.CheckErr(err)
-					pkgInfo := GetPkgInfo{Name: name, Project: "", Path: archiveMatch, Build: lastSuccessfulBuild, Md5: md5Sum}
+					pkgInfo := GetPkgInfo{Name: name, Project: projectName, Path: archiveMatch, Build: lastSuccessfulBuild, Md5: md5Sum}
 					if oldPkgInfo, ok := pkgInfoMap[name]; !ok {
 						pkgInfoMap[name] = pkgInfo
 					} else {
@@ -238,7 +241,7 @@ func init() {
 	}
 
 	jenkinsGetPkgCmd.Flags().String(
-		"jenkins-project-glob", "", "使用jenkins builds project模式解析,此时第一个参数应该为jenkins的builds目录")
+		"jenkins-project-glob", "*", "使用jenkins builds project模式解析,此时第一个参数应该为jenkins的builds目录")
 
 	jenkinsCmd.AddCommand(jenkinsGetPkgCmd)
 
