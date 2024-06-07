@@ -255,16 +255,14 @@ func init() {
 			if len(args) == 1 {
 				fmt.Println("序号 项目文件 构建时间 Md5值 提交ID 提交时间 提交人 提交人邮箱 提交信息")
 				entries := make(map[string]struct{}, 16)
-				indexColumn := 0
-				for _, project := range projects {
+				for indexColumn, project := range projects {
 					// 重复项目忽略
 					if _, ok := entries[project.ArtifactId]; ok {
 						cobra.CheckErr(fmt.Sprintf("项目title:[%s] [%s]重复", project.ArtifactId, project.Name))
 					}
 					entries[project.ArtifactId] = struct{}{}
-					indexColumn++
 					_, err := fmt.Printf(
-						"%d %s %s %s %s %s %s %s %s\n", indexColumn, project.Name,
+						"%d %s %s %s %s %s %s %s %s\n", indexColumn+1, project.Name,
 						project.BuildTime.Format("2006-01-02T15:04:05+0800"), project.md5sum,
 						project.GitProps.GetString("git.commit.id", ""), project.GitProps.GetString(
 							"git.commit.time", ""), project.GitProps.GetString("git.commit.user.name", ""),
