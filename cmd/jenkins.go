@@ -153,9 +153,8 @@ func init() {
 		Short: "从pkg.txt中读取文件并从jenkins构建目录下获取jar包",
 		Args:  cobra.ExactArgs(3),
 		Run: func(cmd *cobra.Command, args []string) {
-			jenkinsProjectGlob, err := cmd.Flags().GetString("jenkins-project-glob")
+			jenkinsProjectGlob, err := cmd.Flags().GetString("glob")
 			cobra.CheckErr(err)
-
 			permalinksGlobPattern := filepath.Join(args[1], jenkinsProjectGlob, "permalinks")
 			matches, err := doublestar.Glob(permalinksGlobPattern)
 			cobra.CheckErr(err)
@@ -198,7 +197,7 @@ func init() {
 			defer fileHandler.Close()
 			reader := bufio.NewReader(fileHandler)
 			totalNum := 0
-			succPkgcInfos := make([]GetPkgInfo, 0, 16)
+			succPkgInfos := make([]GetPkgInfo, 0, 16)
 			failedJarFileNames := make([]string, 0, 8)
 			for {
 				line, _, err := reader.ReadLine()
@@ -225,7 +224,7 @@ func init() {
 					defer dstFile.Close()
 					_, err = io.Copy(dstFile, srcFile)
 					cobra.CheckErr(err)
-					succPkgcInfos = append(succPkgcInfos, pkgInfo)
+					succPkgInfos = append(succPkgInfos, pkgInfo)
 				} else {
 					log.Warnf("没有找到文件:%s", jarFileName)
 					failedJarFileNames = append(failedJarFileNames, jarFileName)
@@ -233,7 +232,7 @@ func init() {
 			}
 			log.Infof("成功统计信息:")
 			fmt.Println("序号", "包名", "项目", "构建序号", "Md5", "原始路径")
-			for idx, pkg := range succPkgcInfos {
+			for idx, pkg := range succPkgInfos {
 				fmt.Println(idx+1, pkg.Name, pkg.Project, pkg.Build, pkg.Md5, pkg.Path)
 			}
 			log.Infof("失败统计信息:")
@@ -241,13 +240,15 @@ func init() {
 			for idx, jarFileName := range failedJarFileNames {
 				fmt.Println(idx+1, jarFileName)
 			}
-			log.Infof("处理完成,总计:%d,成功:%d", totalNum, len(succPkgcInfos))
+			log.Infof("处理完成,总计:%d,成功:%d", totalNum, len(succPkgInfos))
 
 		},
 	}
 
 	jenkinsGetPkgCmd.Flags().String(
-		"jenkins-project-glob", "*", "使用jenkins builds project模式解析,此时第一个参数应该为jenkins的builds目录")
+		"glob", "*", "使用jenkins builds project模式解析,此时第一个参数应该为jenkins的builds目录")
+	jenkinsGetPkgCmd.Flags().Bool(
+		"md", false, "统计信息是否使用markdown输出")
 
 	jenkinsCmd.AddCommand(jenkinsGetPkgCmd)
 
