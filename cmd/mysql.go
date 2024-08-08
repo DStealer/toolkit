@@ -20,7 +20,7 @@ import (
 
 var (
 	mysqlAddr     = "127.0.0.1:3306"
-	mysqlDatabase = ""
+	mysqlDatabase = "test"
 	mysqlUsername = "root"
 	mysqlPassword = ""
 
@@ -32,11 +32,8 @@ var (
 
 func init() {
 	mysqlCmd.PersistentFlags().StringVar(&mysqlAddr, "addr", mysqlAddr, "服务地址数据库地址,ip:port或unix socket")
-	mysqlCmd.MarkFlagRequired("addr")
 	mysqlCmd.PersistentFlags().StringVar(&mysqlDatabase, "database", mysqlDatabase, "数据库名称")
-	mysqlCmd.MarkFlagRequired("database")
 	mysqlCmd.PersistentFlags().StringVar(&mysqlUsername, "username", mysqlUsername, "用户名")
-	mysqlCmd.MarkFlagRequired("username")
 	mysqlCmd.PersistentFlags().StringVar(&mysqlPassword, "password", mysqlPassword, "密码")
 
 	dumpCmd := &cobra.Command{
