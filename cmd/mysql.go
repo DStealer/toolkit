@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bgentry/speakeasy"
 	"github.com/go-mysql-org/go-mysql/client"
 	_ "github.com/go-mysql-org/go-mysql/driver"
 	"github.com/go-mysql-org/go-mysql/mysql"
@@ -19,9 +20,9 @@ import (
 
 var (
 	mysqlAddr     = "127.0.0.1:3306"
-	mysqlUsername = ""
-	mysqlPassword = ""
 	mysqlDatabase = ""
+	mysqlUsername = "root"
+	mysqlPassword = ""
 
 	mysqlCmd = &cobra.Command{
 		Use:   "mysql subcommand [args]",
@@ -31,15 +32,23 @@ var (
 
 func init() {
 	mysqlCmd.PersistentFlags().StringVar(&mysqlAddr, "addr", mysqlAddr, "服务地址数据库地址,ip:port或unix socket")
-	mysqlCmd.PersistentFlags().StringVar(&mysqlUsername, "username", mysqlUsername, "用户名")
-	mysqlCmd.PersistentFlags().StringVar(&mysqlPassword, "password", mysqlPassword, "密码")
+	mysqlCmd.MarkFlagRequired("addr")
 	mysqlCmd.PersistentFlags().StringVar(&mysqlDatabase, "database", mysqlDatabase, "数据库名称")
+	mysqlCmd.MarkFlagRequired("database")
+	mysqlCmd.PersistentFlags().StringVar(&mysqlUsername, "username", mysqlUsername, "用户名")
+	mysqlCmd.MarkFlagRequired("username")
+	mysqlCmd.PersistentFlags().StringVar(&mysqlPassword, "password", mysqlPassword, "密码")
 
 	dumpCmd := &cobra.Command{
 		Use:   "dump [args] table",
 		Short: "mysql数据导出工具",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			if len(mysqlPassword) == 0 {
+				psd, err := speakeasy.Ask("请输入密码:")
+				cobra.CheckErr(err)
+				mysqlPassword = psd
+			}
 			conn, err := client.Connect(mysqlAddr, mysqlUsername, mysqlPassword, mysqlDatabase)
 			cobra.CheckErr(err)
 			err = conn.Ping()
@@ -65,25 +74,29 @@ func init() {
 			var result mysql.Result
 			defer result.Close()
 			var recordsNo int
-			err = conn.ExecuteSelectStreaming(fmt.Sprintf("SELECT /*!40001 SQL_NO_CACHE */ * FROM `%s` WHERE %s ;", table, where), &result, func(row []mysql.FieldValue) error {
-				names := make([]string, len(result.Fields))
-				values := make([]string, len(result.Fields))
-				for index, val := range row {
-					if val.Type == mysql.FieldValueTypeString {
-						values[index] = fmt.Sprintf("'%s'", string(val.AsString()))
-					} else if val.Type == mysql.FieldValueTypeNull {
-						values[index] = "NULL"
-					} else {
-						values[index] = fmt.Sprintf("%v", val.Value())
+			err = conn.ExecuteSelectStreaming(
+				fmt.Sprintf("SELECT /*!40001 SQL_NO_CACHE */ * FROM `%s` WHERE %s ;", table, where), &result,
+				func(row []mysql.FieldValue) error {
+					names := make([]string, len(result.Fields))
+					values := make([]string, len(result.Fields))
+					for index, val := range row {
+						if val.Type == mysql.FieldValueTypeString {
+							values[index] = fmt.Sprintf("'%s'", string(val.AsString()))
+						} else if val.Type == mysql.FieldValueTypeNull {
+							values[index] = "NULL"
+						} else {
+							values[index] = fmt.Sprintf("%v", val.Value())
+						}
+						names[index] = fmt.Sprintf("`%s`", string(result.Fields[index].Name))
 					}
-					names[index] = fmt.Sprintf("`%s`", string(result.Fields[index].Name))
-				}
-				fmt.Printf("INSERT INTO `%s` (%s) VALUES (%s);\n", table, strings.Join(names, ","), strings.Join(values, ","))
-				recordsNo += 1
-				return nil
-			}, func(result *mysql.Result) error {
-				return nil
-			})
+					fmt.Printf(
+						"INSERT INTO `%s` (%s) VALUES (%s);\n", table, strings.Join(names, ","),
+						strings.Join(values, ","))
+					recordsNo += 1
+					return nil
+				}, func(result *mysql.Result) error {
+					return nil
+				})
 			fmt.Printf("#总计数目:%d条\n", recordsNo)
 			cobra.CheckErr(err)
 		},
@@ -101,6 +114,11 @@ func init() {
 		Short: "mysql数据清洗工具-更新",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			if len(mysqlPassword) == 0 {
+				psd, err := speakeasy.Ask("请输入密码:")
+				cobra.CheckErr(err)
+				mysqlPassword = psd
+			}
 			conn, err := client.Connect(mysqlAddr, mysqlUsername, mysqlPassword, mysqlDatabase)
 			defer conn.Close()
 			cobra.CheckErr(err)
@@ -147,7 +165,10 @@ func init() {
 					keyName = string(val[fieldNames["Field"]].AsString())
 				}
 				result.Close()
-				result, err = conn.Execute(fmt.Sprintf("select min(%s) as lid, max(%s) as hid from `%s`.%s", keyName, keyName, item.Schema, item.Table))
+				result, err = conn.Execute(
+					fmt.Sprintf(
+						"select min(%s) as lid, max(%s) as hid from `%s`.%s", keyName, keyName, item.Schema,
+						item.Table))
 				cobra.CheckErr(err)
 				if result.RowNumber() != 1 {
 					cobra.CheckErr("查询主键边界错误")
@@ -212,7 +233,9 @@ func init() {
 					result.Close()
 				}
 
-				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
+				log.Infof(
+					"结束处理%d/%d条目%s.%s 共处理%d条", index+1, len(mysqlCleansingConfig.Items), item.Schema,
+					item.Table, totalAffectedRows)
 			}
 			log.Infof("结束执行")
 		},
@@ -224,6 +247,11 @@ func init() {
 		Short: "mysql数据清洗工具-校验",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			if len(mysqlPassword) == 0 {
+				psd, err := speakeasy.Ask("请输入密码:")
+				cobra.CheckErr(err)
+				mysqlPassword = psd
+			}
 			conn, err := client.Connect(mysqlAddr, mysqlUsername, mysqlPassword, mysqlDatabase)
 			defer conn.Close()
 			cobra.CheckErr(err)
@@ -270,7 +298,10 @@ func init() {
 					keyName = string(val[fieldNames["Field"]].AsString())
 				}
 				result.Close()
-				result, err = conn.Execute(fmt.Sprintf("select min(%s) as Lid, max(%s) as Hid from `%s`.%s", keyName, keyName, item.Schema, item.Table))
+				result, err = conn.Execute(
+					fmt.Sprintf(
+						"select min(%s) as Lid, max(%s) as Hid from `%s`.%s", keyName, keyName, item.Schema,
+						item.Table))
 				cobra.CheckErr(err)
 				if result.RowNumber() != 1 {
 					cobra.CheckErr("查询主键边界错误")
@@ -344,11 +375,13 @@ func init() {
 					}
 					result, err = conn.Execute(item.UpdateSql, left, right)
 					cobra.CheckErr(err)
-					log.Infof("执行:%v-%v,记录:%v条", left, right, result.AffectedRows)
+					log.Infof("执行:%v-%v,记录:%v条", left, right, result.RowNumber)
 					totalAffectedRows = totalAffectedRows + result.RowNumber()
 					result.Close()
 				}
-				log.Infof("结束处理%d/%d条目%s.%s 共处理%d条\n", index+1, len(mysqlCleansingConfig.Items), item.Schema, item.Table, totalAffectedRows)
+				log.Infof(
+					"结束处理%d/%d条目%s.%s 共处理%d条\n", index+1, len(mysqlCleansingConfig.Items), item.Schema,
+					item.Table, totalAffectedRows)
 			}
 			log.Infof("结束执行")
 		},
