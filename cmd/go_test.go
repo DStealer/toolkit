@@ -900,6 +900,6 @@ func TestJenkinsBuildGlob(t *testing.T) {
 }
 
 func TestJarLib(t *testing.T) {
-	rootCmd.SetArgs([]string{"k8s", "jarlib"})
+	rootCmd.SetArgs([]string{"k8s", "jarlib", "dep.csv"})
 	cobra.CheckErr(rootCmd.Execute())
 }
