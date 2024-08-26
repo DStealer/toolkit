@@ -257,7 +257,7 @@ func init() {
 					Images:    podImages,
 					JarLibs:   jarLibs,
 				}
-				log.Infof("解析 namespace:%s pod name:%s lib:%d\n", pod.Namespace, pod.Name, len(jarLibs))
+				log.Infof("解析namespace:%s name:%s lib:%d\n", pod.Namespace, pod.Name, len(jarLibs))
 				JarImageLibs = append(JarImageLibs, jarImageLib)
 			}
 			file, err := os.OpenFile(args[0], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
