@@ -206,7 +206,7 @@ func init() {
 
 			cobra.CheckErr(err)
 			clientSet := kubernetes.NewForConfigOrDie(config)
-
+			JarImageLibs := make([]JarImageLib, 0)
 			podList, err := clientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 			cobra.CheckErr(err)
 			for _, pod := range podList.Items {
@@ -245,10 +245,62 @@ func init() {
 					log.Warnf("标准错误:\n%s\n", stderr.String())
 					continue
 				}
+				podImages := make([]string, 1)
+				for _, c := range pod.Spec.Containers {
+					podImages = append(podImages, c.Image)
+				}
+				jarLibs := parseJarLibFromStdout(stdout.String())
+
+				jarImageLib := JarImageLib{
+					PodName:   pod.Name,
+					Namespace: namespace,
+					Images:    podImages,
+					JarLibs:   jarLibs,
+				}
+				JarImageLibs = append(JarImageLibs, jarImageLib)
+			}
+			for _, jarImageLib := range JarImageLibs {
+				fmt.Println(jarImageLib)
 			}
 		},
 	}
 	jarLibCmd.Flags().String("context", "", "当前使用的上下文环境")
 	jarLibCmd.Flags().String("namespace", "default", "当前使用的命名空间")
 	k8sCmd.AddCommand(jarLibCmd)
+}
+
+// 解析Md5标准输出
+func parseJarLibFromStdout(stdout string) []JarLib {
+	jarLibs := make([]JarLib, 0)
+
+	for _, line := range strings.Split(stdout, "\n") {
+		if len(line) == 0 {
+			continue
+		}
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) != 2 {
+			log.Warnf("invalid line: %s\n", line)
+			continue
+		}
+
+		jarLib := JarLib{
+			JarName: filepath.Base(parts[1]),
+			JarPath: parts[1],
+			Md5:     parts[0],
+		}
+		jarLibs = append(jarLibs, jarLib)
+	}
+	return jarLibs
+}
+
+type JarImageLib struct {
+	PodName   string
+	Namespace string
+	Images    []string
+	JarLibs   []JarLib
+}
+type JarLib struct {
+	JarName string
+	JarPath string
+	Md5     string
 }
