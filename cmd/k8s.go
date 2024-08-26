@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"fmt"
 	"github.com/siddontang/go-log/log"
 	"github.com/spf13/cobra"
@@ -175,9 +176,9 @@ func init() {
 	k8sCmd.AddCommand(sshCmd)
 
 	jarLibCmd := &cobra.Command{
-		Use:   "jarlib [args]",
+		Use:   "jarlib csvpath [args]",
 		Short: "jar lib 分析工具",
-		Args:  cobra.NoArgs,
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			stopChannel := make(chan struct{}, 1)
 			signals := make(chan os.Signal, 1)
@@ -259,8 +260,17 @@ func init() {
 				}
 				JarImageLibs = append(JarImageLibs, jarImageLib)
 			}
+			file, err := os.OpenFile(args[1], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+			cobra.CheckErr(err)
+			defer file.Close()
+			csvWriter := csv.NewWriter(file)
+			csvWriter.Write([]string{"命名空间", "pod名称", "镜像信息", "依赖名称", "依赖路径", "依赖MD5"})
 			for _, jarImageLib := range JarImageLibs {
-				fmt.Println(jarImageLib)
+				for _, jarLib := range jarImageLib.JarLibs {
+					csvWriter.Write(
+						[]string{jarImageLib.Namespace, jarImageLib.PodName, strings.Join(
+							jarImageLib.Images, ","), jarLib.JarName, jarLib.JarPath, jarLib.Md5})
+				}
 			}
 		},
 	}
