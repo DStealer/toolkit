@@ -260,7 +260,7 @@ func init() {
 				}
 				JarImageLibs = append(JarImageLibs, jarImageLib)
 			}
-			file, err := os.OpenFile(args[1], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+			file, err := os.OpenFile(args[0], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
 			cobra.CheckErr(err)
 			defer file.Close()
 			csvWriter := csv.NewWriter(file)
