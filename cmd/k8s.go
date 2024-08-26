@@ -241,12 +241,11 @@ func init() {
 						Stdout: &stdout,
 						Stderr: &stderr,
 					})
-				log.Infof("标准输出:\n%s\n", stdout.String())
 				if err != nil {
 					log.Warnf("标准错误:\n%s\n", stderr.String())
 					continue
 				}
-				podImages := make([]string, 1)
+				podImages := make([]string, 0)
 				for _, c := range pod.Spec.Containers {
 					podImages = append(podImages, c.Image)
 				}
@@ -258,6 +257,7 @@ func init() {
 					Images:    podImages,
 					JarLibs:   jarLibs,
 				}
+				log.Infof("解析pod信息:%v\n", jarImageLib)
 				JarImageLibs = append(JarImageLibs, jarImageLib)
 			}
 			file, err := os.OpenFile(args[0], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
@@ -272,6 +272,13 @@ func init() {
 							jarImageLib.Images, ","), jarLib.JarName, jarLib.JarPath, jarLib.Md5})
 				}
 			}
+			csvWriter.Flush()
+			if absPath, err := filepath.Abs(args[0]); err == nil {
+				log.Infof("写入csv文件:%s完成,总计:%d\n", absPath, len(JarImageLibs))
+			} else {
+				log.Infof("写入csv文件:%s完成,总计:%d\n", file.Name(), len(JarImageLibs))
+			}
+
 		},
 	}
 	jarLibCmd.Flags().String("context", "", "当前使用的上下文环境")
@@ -294,9 +301,9 @@ func parseJarLibFromStdout(stdout string) []JarLib {
 		}
 
 		jarLib := JarLib{
-			JarName: filepath.Base(parts[1]),
-			JarPath: parts[1],
-			Md5:     parts[0],
+			JarName: filepath.Base(strings.TrimSpace(parts[1])),
+			JarPath: strings.TrimSpace(parts[1]),
+			Md5:     strings.TrimSpace(parts[0]),
 		}
 		jarLibs = append(jarLibs, jarLib)
 	}
