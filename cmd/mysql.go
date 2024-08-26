@@ -372,7 +372,7 @@ func init() {
 					}
 					result, err = conn.Execute(item.UpdateSql, left, right)
 					cobra.CheckErr(err)
-					log.Infof("执行:%v-%v,记录:%v条", left, right, result.RowNumber)
+					log.Infof("执行:%v-%v,记录:%v条", left, right, result.RowNumber())
 					totalAffectedRows = totalAffectedRows + result.RowNumber()
 					result.Close()
 				}

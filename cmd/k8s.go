@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/siddontang/go-log/log"
@@ -12,15 +13,18 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/tools/portforward"
+	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/transport/spdy"
 	"k8s.io/client-go/util/homedir"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -33,7 +37,9 @@ var (
 
 func init() {
 
-	k8sCmd.PersistentFlags().String("kubeconfig", filepath.Join(homedir.HomeDir(), ".kube", "config"), "Path to the kubeconfig file to use for CLI requests.")
+	k8sCmd.PersistentFlags().String(
+		"kubeconfig", filepath.Join(homedir.HomeDir(), ".kube", "config"),
+		"Path to the kubeconfig file to use for CLI requests.")
 
 	sshCmd := &cobra.Command{
 		Use:   "ssh [args]",
@@ -56,7 +62,9 @@ func init() {
 			currentContext, err := cmd.Flags().GetString("context")
 			cobra.CheckErr(err)
 
-			clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig}, &clientcmd.ConfigOverrides{CurrentContext: currentContext, ClusterInfo: clientcmdapi.Cluster{InsecureSkipTLSVerify: true}})
+			clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+				&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
+				&clientcmd.ConfigOverrides{CurrentContext: currentContext, ClusterInfo: clientcmdapi.Cluster{InsecureSkipTLSVerify: true}})
 
 			config, err := clientConfig.ClientConfig()
 
@@ -109,24 +117,27 @@ func init() {
 						}},
 					},
 				}
-				_, err = clientSet.CoreV1().Pods(pod.Namespace).Create(context.Background(), pod, metav1.CreateOptions{})
+				_, err = clientSet.CoreV1().Pods(pod.Namespace).Create(
+					context.Background(), pod, metav1.CreateOptions{})
 				cobra.CheckErr(err)
 
-				err = wait.PollImmediateUntil(1*time.Second, func() (bool, error) {
-					newPod, err := clientSet.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "Error getting Pod :%q [%v]\n", newPod.Name, err)
-						return false, nil
-					}
-					if newPod == nil {
-						fmt.Fprintf(os.Stderr, "Pod :%q not found\n", newPod.Name)
-						return false, nil
-					}
-					if newPod.Status.Phase != v1.PodRunning {
-						return false, nil
-					}
-					return true, nil
-				}, stopChannel)
+				err = wait.PollImmediateUntil(
+					1*time.Second, func() (bool, error) {
+						newPod, err := clientSet.CoreV1().Pods(pod.Namespace).Get(
+							context.TODO(), pod.Name, metav1.GetOptions{})
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "Error getting Pod :%q [%v]\n", newPod.Name, err)
+							return false, nil
+						}
+						if newPod == nil {
+							fmt.Fprintf(os.Stderr, "Pod :%q not found\n", newPod.Name)
+							return false, nil
+						}
+						if newPod.Status.Phase != v1.PodRunning {
+							return false, nil
+						}
+						return true, nil
+					}, stopChannel)
 
 				cobra.CheckErr(err)
 				pod, err = clientSet.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
@@ -149,7 +160,9 @@ func init() {
 
 			readyChannel := make(chan struct{})
 			localPort := cmd.Flag("local-port").Value.String()
-			fw, err := portforward.NewOnAddresses(dialer, []string{"127.0.0.1"}, []string{fmt.Sprintf("%v:22", localPort)}, stopChannel, readyChannel, os.Stdout, os.Stderr)
+			fw, err := portforward.NewOnAddresses(
+				dialer, []string{"127.0.0.1"}, []string{fmt.Sprintf("%v:22", localPort)}, stopChannel, readyChannel,
+				os.Stdout, os.Stderr)
 			cobra.CheckErr(err)
 			log.Infof("ssh port listen on 127.0.0.1:%v \n", localPort)
 			err = fw.ForwardPorts()
@@ -161,4 +174,81 @@ func init() {
 	sshCmd.Flags().Int("local-port", 22622, "使用的本地端口")
 	k8sCmd.AddCommand(sshCmd)
 
+	jarLibCmd := &cobra.Command{
+		Use:   "jarlib [args]",
+		Short: "jar lib 分析工具",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			stopChannel := make(chan struct{}, 1)
+			signals := make(chan os.Signal, 1)
+			signal.Notify(signals, os.Interrupt)
+			defer signal.Stop(signals)
+			go func() {
+				<-signals
+				if stopChannel != nil {
+					close(stopChannel)
+				}
+			}()
+			kubeconfig, err := cmd.Flags().GetString("kubeconfig")
+			cobra.CheckErr(err)
+
+			currentContext, err := cmd.Flags().GetString("context")
+			cobra.CheckErr(err)
+
+			namespace, err := cmd.Flags().GetString("namespace")
+			cobra.CheckErr(err)
+
+			clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+				&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
+				&clientcmd.ConfigOverrides{CurrentContext: currentContext, ClusterInfo: clientcmdapi.Cluster{InsecureSkipTLSVerify: true}})
+
+			config, err := clientConfig.ClientConfig()
+
+			cobra.CheckErr(err)
+			clientSet := kubernetes.NewForConfigOrDie(config)
+
+			podList, err := clientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+			cobra.CheckErr(err)
+			for _, pod := range podList.Items {
+				if pod.Status.Phase != v1.PodRunning {
+					log.Warnf("pod %s is not running\n", pod.Name)
+					continue
+				}
+				log.Infof("pod %s is running\n", pod.Name)
+				// 构造执行命令请求
+				req := clientSet.CoreV1().RESTClient().Post().
+					Resource("pods").
+					Name(pod.Name).
+					Namespace(pod.Namespace).
+					SubResource("exec").
+					VersionedParams(
+						&v1.PodExecOptions{
+							Command: []string{"sh", "-c", "find /app -name *.jar -print0 | xargs -0 md5sum"},
+							Stdin:   true,
+							Stdout:  true,
+							Stderr:  true,
+							TTY:     false,
+						}, scheme.ParameterCodec)
+				// 执行命令
+				executor, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+				cobra.CheckErr(err)
+				// 使用bytes.Buffer变量接收标准输出和标准错误
+				var stdout, stderr bytes.Buffer
+				err = executor.Stream(
+					remotecommand.StreamOptions{
+						Stdin:  strings.NewReader(""),
+						Stdout: &stdout,
+						Stderr: &stderr,
+					})
+				log.Infof("标准输出:\n%s\n", stdout.String())
+				if err != nil {
+					log.Warnf("标准错误:\n%s\n", stderr.String())
+					continue
+				}
+			}
+		},
+	}
+	jarLibCmd.Flags().String("context", "", "当前使用的上下文环境")
+	jarLibCmd.Flags().String("namespace", "default", "当前使用的命名空间")
+	k8sCmd.AddCommand(jarLibCmd)
 }

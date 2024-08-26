@@ -898,3 +898,8 @@ func TestJenkinsBuildGlob(t *testing.T) {
 	fmt.Println(filepath.Base(dir), file)
 
 }
+
+func TestJarLib(t *testing.T) {
+	rootCmd.SetArgs([]string{"k8s", "jarlib"})
+	cobra.CheckErr(rootCmd.Execute())
+}
