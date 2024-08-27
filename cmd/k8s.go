@@ -39,12 +39,13 @@ var (
 func init() {
 
 	k8sCmd.PersistentFlags().String(
-		"kubeconfig", filepath.Join(homedir.HomeDir(), ".kube", "config"),
-		"Path to the kubeconfig file to use for CLI requests.")
+		"kubeconfig", filepath.Join(homedir.HomeDir(), ".kube", "config"), "kubectl的配置文件路径")
+	k8sCmd.PersistentFlags().String("context", "", "当前使用的上下文环境")
+	k8sCmd.PersistentFlags().String("namespace", "default", "当前使用的命名空间")
 
 	sshCmd := &cobra.Command{
 		Use:   "ssh [args]",
-		Short: "ssh网络分析工具",
+		Short: "ssh 网络工具",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			stopChannel := make(chan struct{}, 1)
@@ -63,15 +64,19 @@ func init() {
 			currentContext, err := cmd.Flags().GetString("context")
 			cobra.CheckErr(err)
 
+			namespace, err := cmd.Flags().GetString("namespace")
+			cobra.CheckErr(err)
+
 			clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 				&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
 				&clientcmd.ConfigOverrides{CurrentContext: currentContext, ClusterInfo: clientcmdapi.Cluster{InsecureSkipTLSVerify: true}})
 
 			config, err := clientConfig.ClientConfig()
-
 			cobra.CheckErr(err)
+
 			clientSet := kubernetes.NewForConfigOrDie(config)
-			pod, err := clientSet.CoreV1().Pods("default").Get(context.TODO(), "netshoot", metav1.GetOptions{})
+
+			pod, err := clientSet.CoreV1().Pods(namespace).Get(context.TODO(), "netshoot", metav1.GetOptions{})
 
 			if errors.IsNotFound(err) {
 				image, err := cmd.Flags().GetString("image")
@@ -171,7 +176,6 @@ func init() {
 		},
 	}
 	sshCmd.Flags().String("image", "registry.develop.com:5000/library/netshoot-sshd:latest", "使用的镜像")
-	sshCmd.Flags().String("context", "", "当前使用的上下文环境")
 	sshCmd.Flags().Int("local-port", 22622, "使用的本地端口")
 	k8sCmd.AddCommand(sshCmd)
 
@@ -204,9 +208,10 @@ func init() {
 				&clientcmd.ConfigOverrides{CurrentContext: currentContext, ClusterInfo: clientcmdapi.Cluster{InsecureSkipTLSVerify: true}})
 
 			config, err := clientConfig.ClientConfig()
-
 			cobra.CheckErr(err)
+
 			clientSet := kubernetes.NewForConfigOrDie(config)
+
 			JarImageLibs := make([]JarImageLib, 0)
 			podList, err := clientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 			cobra.CheckErr(err)
@@ -281,9 +286,92 @@ func init() {
 
 		},
 	}
-	jarLibCmd.Flags().String("context", "", "当前使用的上下文环境")
-	jarLibCmd.Flags().String("namespace", "default", "当前使用的命名空间")
 	k8sCmd.AddCommand(jarLibCmd)
+
+	imageListCmd := &cobra.Command{
+		Use:   "imagelist [args]",
+		Short: "运行镜像分析工具",
+		Args:  cobra.MaximumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			stopChannel := make(chan struct{}, 1)
+			signals := make(chan os.Signal, 1)
+			signal.Notify(signals, os.Interrupt)
+			defer signal.Stop(signals)
+			go func() {
+				<-signals
+				if stopChannel != nil {
+					close(stopChannel)
+				}
+			}()
+			kubeconfig, err := cmd.Flags().GetString("kubeconfig")
+			cobra.CheckErr(err)
+
+			currentContext, err := cmd.Flags().GetString("context")
+			cobra.CheckErr(err)
+
+			namespace, err := cmd.Flags().GetString("namespace")
+			cobra.CheckErr(err)
+
+			clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+				&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
+				&clientcmd.ConfigOverrides{CurrentContext: currentContext, ClusterInfo: clientcmdapi.Cluster{InsecureSkipTLSVerify: true}})
+
+			config, err := clientConfig.ClientConfig()
+			cobra.CheckErr(err)
+
+			clientSet := kubernetes.NewForConfigOrDie(config)
+
+			podImages := make([][]string, 0)
+			podList, err := clientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+			cobra.CheckErr(err)
+			for _, pod := range podList.Items {
+				if pod.Status.Phase != v1.PodRunning {
+					log.Warnf("pod %s is not running\n", pod.Name)
+					continue
+				}
+				log.Infof("pod %s is running\n", pod.Name)
+				// 构造执行命令请求
+				podImage := make([]string, 3)
+
+				podImage = append(podImage, pod.Namespace)
+				podImage = append(podImage, pod.Name)
+				images := make([]string, 0)
+				for _, c := range pod.Spec.Containers {
+					images = append(images, c.Image)
+				}
+				podImage = append(podImage, strings.Join(images, ","))
+			}
+
+			if len(args) == 0 {
+				csvWriter := csv.NewWriter(os.Stdout)
+				csvWriter.Write([]string{"命名空间", "pod名称", "镜像信息"})
+				for _, podImage := range podImages {
+					csvWriter.Write(podImage[:])
+				}
+				csvWriter.Flush()
+				log.Infof("写入完成,总计:%d\n", len(podImages))
+			} else {
+				file, err := os.OpenFile(args[0], os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+				cobra.CheckErr(err)
+				defer file.Close()
+				csvWriter := csv.NewWriter(file)
+				csvWriter.Write([]string{"命名空间", "pod名称", "镜像信息"})
+				for _, podImage := range podImages {
+					csvWriter.Write(podImage[:])
+				}
+				csvWriter.Flush()
+				if absPath, err := filepath.Abs(args[0]); err == nil {
+					log.Infof("写入csv文件:%s完成,总计:%d\n", absPath, len(podImages))
+				} else {
+					log.Infof("写入csv文件:%s完成,总计:%d\n", file.Name(), len(podImages))
+				}
+
+			}
+
+		},
+	}
+	k8sCmd.AddCommand(imageListCmd)
+
 }
 
 // 解析Md5标准输出
