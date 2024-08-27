@@ -903,3 +903,7 @@ func TestJarLib(t *testing.T) {
 	rootCmd.SetArgs([]string{"k8s", "jarlib", "dep.csv"})
 	cobra.CheckErr(rootCmd.Execute())
 }
+func TestImageList(t *testing.T) {
+	rootCmd.SetArgs([]string{"k8s", "imagelist"})
+	cobra.CheckErr(rootCmd.Execute())
+}

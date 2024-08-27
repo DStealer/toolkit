@@ -331,7 +331,7 @@ func init() {
 				}
 				log.Infof("pod %s is running\n", pod.Name)
 				// 构造执行命令请求
-				podImage := make([]string, 3)
+				podImage := make([]string, 0, 3)
 
 				podImage = append(podImage, pod.Namespace)
 				podImage = append(podImage, pod.Name)
@@ -340,6 +340,7 @@ func init() {
 					images = append(images, c.Image)
 				}
 				podImage = append(podImage, strings.Join(images, ","))
+				podImages = append(podImages, podImage)
 			}
 
 			if len(args) == 0 {
